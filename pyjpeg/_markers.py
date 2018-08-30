@@ -2,7 +2,7 @@ from pyjpeg.readers import *
 
 MARKERS = {
     # Reserved markers
-    0xFF01 : ('TEM', 'For temporary private use in artithmetic coding'),
+    0xFF01 : ('TEM', 'For temporary private use in artithmetic coding', None),  # Standalone
     0xFF02 : ('RES', 'Reserved'),
     # Start of frame markers, non-differential, Huffman coding
     0xFFC0 : ('SOF_00', 'Baseline DCT', SOF),
@@ -27,17 +27,17 @@ MARKERS = {
     0xFFCE : ('SOF_14', 'Differential progressive DCT', SOF),
     0xFFCF : ('SOF_15', 'Differential lossless (sequential)', SOF),
     # Restart interval termination
-    0xFFD0 : ('RST_0', 'Restart with modulo 8, count "0"', None),
-    0xFFD1 : ('RST_1', 'Restart with modulo 8, count "1"', None),
-    0xFFD2 : ('RST_2', 'Restart with modulo 8, count "2"', None),
-    0xFFD3 : ('RST_3', 'Restart with modulo 8, count "3"', None),
-    0xFFD4 : ('RST_4', 'Restart with modulo 8, count "4"', None),
-    0xFFD5 : ('RST_5', 'Restart with modulo 8, count "5"', None),
-    0xFFD6 : ('RST_6', 'Restart with modulo 8, count "6"', None),
-    0xFFD7 : ('RST_7', 'Restart with modulo 8, count "7"', None),
+    0xFFD0 : ('RST_0', 'Restart with modulo 8, count "0"', None),  # Standalone
+    0xFFD1 : ('RST_1', 'Restart with modulo 8, count "1"', None),  # Standalone
+    0xFFD2 : ('RST_2', 'Restart with modulo 8, count "2"', None),  # Standalone
+    0xFFD3 : ('RST_3', 'Restart with modulo 8, count "3"', None),  # Standalone
+    0xFFD4 : ('RST_4', 'Restart with modulo 8, count "4"', None),  # Standalone
+    0xFFD5 : ('RST_5', 'Restart with modulo 8, count "5"', None),  # Standalone
+    0xFFD6 : ('RST_6', 'Restart with modulo 8, count "6"', None),  # Standalone
+    0xFFD7 : ('RST_7', 'Restart with modulo 8, count "7"', None),  # Standalone
     # Other markers
-    0xFFD8 : ('SOI', 'Start of image', SOI),
-    0xFFD9 : ('EOI', 'End of image'),
+    0xFFD8 : ('SOI', 'Start of image', SOI),  # Standalone
+    0xFFD9 : ('EOI', 'End of image', None),  # Standalone
     0xFFDA : ('SOS', 'Start of scan', SOS),
     0xFFDB : ('DQT', 'Define quantization', DQT),
     0xFFDC : ('DNL', 'Define number of lines', skip),

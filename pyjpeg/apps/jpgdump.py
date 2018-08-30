@@ -2,6 +2,7 @@
 """An application for dumping information about a JPEG file."""
 
 import argparse
+import os
 from struct import unpack
 
 from pyjpeg._markers import MARKERS
@@ -12,7 +13,13 @@ def setup_argparse():
 
 
 if __name__ == "__main__":
-    fpath = '../tests/huff_simple0.jpg'
+    #fpath = '../tests/huff_simple0.jpg'
+    #fdir = '../tests/10918/sof_00_baseline_dct'
+    fdir = '../tests/10918/sof_01_extended_sequential_dct'
+    fdir = '../tests/10918/sof_03_lossless_sequential'
+    fname = 'SC_rgb_jpeg_gdcm.jpg'
+
+    fpath = os.path.join(fdir, fname)
 
     with open(fpath, 'rb') as fp:
         if fp.read(1) != b'\xff':
@@ -29,7 +36,7 @@ if __name__ == "__main__":
                 if _marker != 0xFFDA:
                     name, description, handler = MARKERS[_marker]
                     print(
-                        "{0} @ {1} : {2} {3}"
+                        "{0} @ offset {1} : {2} : {3}"
                         .format(hex(_marker), fp.tell() - 2, name, description)
                     )
 
@@ -42,7 +49,7 @@ if __name__ == "__main__":
                     # SOS - start of scan
                     name, description, handler = MARKERS[_marker]
                     print(
-                        "{0} @ {1} : {2} {3}"
+                        "{0} @ offset {1} : {2} : {3}"
                         .format(hex(_marker), fp.tell() - 2, name, description)
                     )
                     handler(fp)

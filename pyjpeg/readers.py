@@ -36,6 +36,7 @@ def _split_byte(bs):
 
 
 def APP(fp):
+    # Can have multiple APP markers
     length = unpack('>H', fp.read(2))[0]
 
     info = {
@@ -51,16 +52,18 @@ def COM(fp):
 
 def DHT(fp):
     length = unpack('>H', fp.read(2))[0]
+    _remaining = length - 2
     # 2 + sum(17 + m_t), for t = 1 to n
     # m_t = sum(Li) for i = 1 to 16
-    print('  Length', length)
-    # FIXME: need to avoid to hard coded 4
-    for kk in range(4):
+    print('  Length:', length)
+
+    while _remaining > 0:
         # 0, 0 -> DC luminance (Y)
         # 1, 0 -> AC luminance (Y)
         # 0, 1 -> DC chrominance (Cb, Cr)
         # 1, 1 -> DC chrominance (Cb, Cr)
         tc, th = _split_byte(fp.read(1))
+        _remaining -= 1
         # up to 32 tables?
         if not tc:
             print('  Table class: 0 (DC)')
@@ -71,17 +74,19 @@ def DHT(fp):
 
         # li (BITS) is the number of codes for each code length, from 1 to 16
         li = unpack('>16B', fp.read(16))
+        _remaining -= 16
         # vij is a list of the 8-bit symbols values (HUFFVAL), each of which
         #   is assigned a Huffman code.
         vij = []
         for nr in li:
             if nr:
                 vij.append(unpack('>{}B'.format(nr), fp.read(nr)))
+                _remaining -= nr
             else:
                 vij.append(None)
 
-        print(li)
-        print(vij)
+        print('  ', li)
+        print('  ', vij)
 
         #huffsize, huffcode = create_huffman_table(li, vij)
 
@@ -142,7 +147,7 @@ def SOF(fp):
     print('  Bit depth', precision,
           '\n  Rows', nr_lines,
           '\n  Columns', samples_per_line,
-          '\n  Components', nr_components)
+          '\n  Number of components', nr_components)
 
     component_id = []
     horizontal_sampling_factor = []
@@ -159,7 +164,7 @@ def SOF(fp):
         '  Component IDs', component_id,
         '\n  Horizontal sampling', horizontal_sampling_factor,
         '\n  Vertical sampling', vertical_sampling_factor,
-        '\n  Quantisation', quantisation_selector
+        '\n  Quantisation table destination selector', quantisation_selector
     )
 
     info = {
@@ -266,38 +271,38 @@ def SOS(fp):
 def DQT(fp):
     # length is 2 + sum(t=1, N) of (65 + 64 * Pq(t))
     length = unpack('>H', fp.read(2))[0]
-    precision, table_id = _split_byte(fp.read(1))
-    fp.seek(-1, 1)
+    print('  Length: ', length)
+    _remaining = length - 2
 
     # This probably needs fixing
-    if precision == 0:
-        nr_tables = (length - 2) // 65
-    elif precision == 1:
-        nr_tables = (length - 2) // 129
-
-    print(
-        '  Precision: {0}'
-        '\n  No. tables: {1}'.format(precision, nr_tables)
-    )
-
-    # If Pq is 0, Qk is 8-bit, if Pq is 1, Qk is 16-bit
-    # PQ shall be 0 for 8-bit precision
-    Q_total = []
-    for tt in range(nr_tables):
+    tables = {}
+    while _remaining > 0:
         precision, table_id = _split_byte(fp.read(1))
+        _remaining -= 1
+
+        print(
+            '  Precision: {0}'.format(precision)
+        )
+
+        # If Pq is 0, Qk is 8-bit, if Pq is 1, Qk is 16-bit
+        # PQ shall be 0 for 8-bit precision
         Q_k = []
         for ii in range(64):
             if precision == 0:
                 Q_k.append(unpack('>B', fp.read(1))[0])
+                _remaining -= 1
             elif precision == 1:
                 Q_k.append(unpack('>H', fp.read(2))[0])
+                _remaining -= 2
 
-        Q_total.append(Q_k)
+        table_info = {
+            'precision' : precision,
+            'Q_k' : Q_k
+        }
+        tables[table_id] = table_info
 
     info = {
-        'precision' : precision,
-        'table_id' : table_id,
-        'q_k' : Q_total,
+        'quantisation_tables' : tables
     }
 
     return info
