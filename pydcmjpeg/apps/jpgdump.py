@@ -13,11 +13,10 @@ def setup_argparse():
 
 
 if __name__ == "__main__":
-    #fpath = '../tests/huff_simple0.jpg'
-    #fdir = '../tests/10918/sof_00_baseline_dct'
-    fdir = '../tests/10918/sof_01_extended_sequential_dct'
-    fdir = '../tests/10918/sof_03_lossless_sequential'
-    fname = 'SC_rgb_jpeg_gdcm.jpg'
+    fdir = '../tests/10918/sof_00_baseline_dct'
+    #fdir = '../tests/10918/sof_01_extended_sequential_dct'
+    #fdir = '../tests/10918/sof_03_lossless_sequential'
+    fname = 'rgb_8_444.jpg'
 
     fpath = os.path.join(fdir, fname)
 

@@ -22,9 +22,7 @@ ECS
 <MCU1>, <MCU_2>, ..., <MCU_R>
 """
 
-from struct import unpack, Struct
-
-from pyjpeg.huffman import create_huffman_table
+from struct import unpack
 
 
 def _split_byte(bs):
@@ -87,8 +85,6 @@ def DHT(fp):
 
         print('  ', li)
         print('  ', vij)
-
-        #huffsize, huffcode = create_huffman_table(li, vij)
 
     info = {
 
@@ -281,7 +277,8 @@ def DQT(fp):
         _remaining -= 1
 
         print(
-            '  Precision: {0}'.format(precision)
+            '  Precision: {0}'.format(precision),
+            '\n  Table ID: {}'.format(table_id)
         )
 
         # If Pq is 0, Qk is 8-bit, if Pq is 1, Qk is 16-bit

@@ -1,7 +1,7 @@
 
-rename to pydicom-jpeg
+rename to pydcmjpeg
 
-Supports SOF 0, SOF 1 and SOF 3
+Supports SOF 0, SOF 1 and SOF 3 as these are the only types allowable in DICOM
 
 SOF 0 - Baseline DCT
     Annex F

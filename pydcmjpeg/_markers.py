@@ -1,9 +1,11 @@
 from pyjpeg.readers import *
 
+
 MARKERS = {
     # Reserved markers
     0xFF01 : ('TEM', 'For temporary private use in artithmetic coding', None),  # Standalone
-    0xFF02 : ('RES', 'Reserved'),
+    0xFF02 : ('RES', 'Reserved', None),
+    # 0xFF03 to 0xFFBF ('RES', 'Reserved', None) are added below
     # Start of frame markers, non-differential, Huffman coding
     0xFFC0 : ('SOF_00', 'Baseline DCT', SOF),
     0xFFC1 : ('SOF_01', 'Extended sequential DCT', SOF),
@@ -76,3 +78,7 @@ MARKERS = {
     0xFFFD : ('JPG_13', 'Reserved for JPEG extensions', None),
     0xFFFE : ('COM', 'Comment', COM),
 }
+
+# The remaining reserved markers
+for _marker in range(0xFF03, 0xFFBF + 1):
+    MARKERS[_marker] = ('RES', 'Reserved', None)

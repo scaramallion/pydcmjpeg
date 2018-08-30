@@ -3,12 +3,12 @@ import os
 import sys
 
 setup(
-    name = "pyjpeg",
+    name = "pydcmjpeg",
     packages = find_packages(),
     include_package_data = True,
     version = '0.0.0',
     zip_safe = False,
-    description = "A Python library for reading jpeg images",
+    description = "A Python library for parsing JPEG images used by the DICOM standard",
     author = "",
     author_email = "",
     url = "https://github.com/pydicom/pynetdicom3",
