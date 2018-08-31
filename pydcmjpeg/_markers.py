@@ -1,11 +1,32 @@
-from pyjpeg.readers import *
+from pydcmjpeg.readers import *
 
 
-MARKERS = {
-    # Reserved markers
+MARKERS = {}
+# The reserved markers
+for _marker in range(0xFF02, 0xFFBF + 1):
+    MARKERS[_marker] = ('RES', 'Reserved', None)
+
+MARKERS.update({
     0xFF01 : ('TEM', 'For temporary private use in artithmetic coding', None),  # Standalone
-    0xFF02 : ('RES', 'Reserved', None),
-    # 0xFF03 to 0xFFBF ('RES', 'Reserved', None) are added below
+    0xFF4F : ('SOC', '', None),  # JPEG 2000
+    0xFF51 : ('SIZ', '', None),  # JPEG 2000
+    0xFF52 : ('COD', '', None),  # JPEG 2000
+    0xFF53 : ('COC', '', None),  # JPEG 2000
+    0xFF55 : ('TLM', '', None),  # JPEG 2000
+    0xFF57 : ('PLM', '', None),  # JPEG 2000
+    0xFF58 : ('PLT', '', None),  # JPEG 2000
+    0xFF5C : ('QCD', '', None),  # JPEG 2000
+    0xFF5D : ('QCC', '', None),  # JPEG 2000
+    0xFF5E : ('RGN', '', None),  # JPEG 2000
+    0xFF5F : ('POC', '', None),  # JPEG 2000
+    0xFF60 : ('PPM', '', None),  # JPEG 2000
+    0xFF61 : ('PPT', '', None),  # JPEG 2000
+    0xFF63 : ('CRG', '', None),  # JPEG 2000
+    0xFF64 : ('COM', '', None),  # JPEG 2000
+    0xFF90 : ('SOT', '', None),  # JPEG 2000
+    0xFF91 : ('SOP', '', None),  # JPEG 2000
+    0xFF92 : ('EPH', '', None),  # JPEG 2000
+    0xFF93 : ('SOD', '', None),  # JPEG 2000
     # Start of frame markers, non-differential, Huffman coding
     0xFFC0 : ('SOF_00', 'Baseline DCT', SOF),
     0xFFC1 : ('SOF_01', 'Extended sequential DCT', SOF),
@@ -62,23 +83,19 @@ MARKERS = {
     0xFFED : ('APP_13', 'Reserved for application segments', APP),
     0xFFEE : ('APP_14', 'Reserved for application segments', APP),
     0xFFEF : ('APP_15', 'Reserved for application segments', APP),
-    0xFFF0 : ('JPG_0', 'Reserved for JPEG extensions', None),
-    0xFFF1 : ('JPG_1', 'Reserved for JPEG extensions', None),
-    0xFFF2 : ('JPG_2', 'Reserved for JPEG extensions', None),
-    0xFFF3 : ('JPG_3', 'Reserved for JPEG extensions', None),
-    0xFFF4 : ('JPG_4', 'Reserved for JPEG extensions', None),
-    0xFFF5 : ('JPG_5', 'Reserved for JPEG extensions', None),
-    0xFFF6 : ('JPG_6', 'Reserved for JPEG extensions', None),
-    0xFFF7 : ('JPG_7', 'Reserved for JPEG extensions', None),
-    0xFFF8 : ('JPG_8', 'Reserved for JPEG extensions', None),
+    0xFFF0 : ('JPG_0', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF1 : ('JPG_1', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF2 : ('JPG_2', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF3 : ('JPG_3', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF4 : ('JPG_4', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF5 : ('JPG_5', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF6 : ('JPG_6', 'Reserved for JPEG extensions', None),  # 10918-3
+    0xFFF7 : ('SOF_55', 'Start of frame (JPEG-LS)', None),  # 14495-1
+    0xFFF8 : ('LSE', 'Beginning of preset parameters (JPEG-LS)', None),  # 14495-1
     0xFFF9 : ('JPG_9', 'Reserved for JPEG extensions', None),
     0xFFFA : ('JPG_10', 'Reserved for JPEG extensions', None),
     0xFFFB : ('JPG_11', 'Reserved for JPEG extensions', None),
     0xFFFC : ('JPG_12', 'Reserved for JPEG extensions', None),
     0xFFFD : ('JPG_13', 'Reserved for JPEG extensions', None),
     0xFFFE : ('COM', 'Comment', COM),
-}
-
-# The remaining reserved markers
-for _marker in range(0xFF03, 0xFFBF + 1):
-    MARKERS[_marker] = ('RES', 'Reserved', None)
+})

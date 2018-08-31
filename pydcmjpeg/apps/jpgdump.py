@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-"""An application for dumping information about a JPEG file."""
+"""An application for dumping information about a 10918 JPEG file."""
 
 import argparse
 import os
 from struct import unpack
 
-from pyjpeg._markers import MARKERS
+from pydcmjpeg import jpgread
+from pydcmjpeg._markers import MARKERS
 
 
 def setup_argparse():
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     fdir = '../tests/10918/sof_00_baseline_dct'
     #fdir = '../tests/10918/sof_01_extended_sequential_dct'
     #fdir = '../tests/10918/sof_03_lossless_sequential'
-    fname = 'rgb_8_444.jpg'
+    fname = 'JPEG2000.jpg'
 
     fpath = os.path.join(fdir, fname)
 

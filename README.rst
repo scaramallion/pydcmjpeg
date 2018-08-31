@@ -1,58 +1,74 @@
 
-rename to pydcmjpeg
+Description
+===========
+A Python library intended to support the use of JPEG transfer syntaxes in
+pydicom.
 
-Supports SOF 0, SOF 1 and SOF 3 as these are the only types allowable in DICOM
+This project is not ready for use.
 
-SOF 0 - Baseline DCT
-    Annex F
-    8 x 8 block of samples
-    DCT-base process
-    Source image: 8-bit samples within each component
-    Sequential (one frame in image, one or more scan per frame)
-        If one component then non-interleaved
-        If 2 to 4 components then interleaved within the scan
-    Huffman coding: up to 2 AC and up to 2 DC tables per scan
-    Decoders shall process scans with 1 to 4 components
-    Interleaved and non-interleaved scans
 
-    001 - up to ECS
-    color3d_jpeg_baseline_422_frame1 - up to ECS
-    huff_simple0 - up to ECS
-    grey_8 - up to ECS
-    rgb_8_422 - up to ECS
-    rgb_8_444 - up to ECS
-    SC_rgb_dcmtk_+eb+cr - up to ECS
-    SC_rgb_dcmtk_+eb+cy+n1 - up to ECS
-    SC_rgb_dcmtk_+eb+cy+n2 - up to ECS
-    SC_rgb_dcmtk_+eb+cy+np - up to ECS
-    SC_rgb_dcmtk_+eb+cy+s4 - up to ECS
-    SC_rgb_jpeg_dcmtk - up to ECS
-    SC_rgb_jpeg_lossy_gdcm - up to ECS
-    SC_rgb_small_odd_jpeg - up to ECS
 
-SOF 1 - Extended Sequential DCT
-    DCT-based process
-    Source image: 8-bit or 12-bit samples
-    Sequential
-    Huffman coding: 4 AC and 4 DC tables
-    Decoders shall process scans with 1 to 4 components
-    Interleaved and non-interleaved scans
+Transfer Syntaxes
+-----------------------------
+JPEG - ISO/IEC 10918-1 and 10918-2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    grey_8 - up to ECS
-    grey_12 - up to ECS
-    JPEG-lossy - up to ECS
-    rgb_8_422 - up to ECS
-    rgb_8_444 - up to ECS
-    rgb_12_422 - up to ECS
-    rgb_12_444 - up to ECS
++---------------------------------------------+-------------------------------+
+| Transfer Syntax                             | Supported                     |
++------------------------+--------------------+---------+----------+----------+
+| UID                    | Name               | Parsing | Decoding | Encoding |
++========================+====================+=========+==========+==========+
+| 1.2.840.10008.1.2.4.50 | JPEG Baseline      | No      | No       | No       |
+|                        | (Process 1)        |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.51 | JPEG Extended      | No      | No       | No       |
+|                        | (Process 2 and 4)  |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.57 | JPEG Lossless,     | No      | No       | No       |
+|                        | Non-hierarchical   |         |          |          |
+|                        | (Process 14)       |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.70 | JPEG Lossless,     | No      | No       | No       |
+|                        | Non-hierarchical,  |         |          |          |
+|                        | First-order        |         |          |          |
+|                        | Prediction         |         |          |          |
+|                        | (Process 14,       |         |          |          |
+|                        | Selection Value 1) |         |          |          |
++------------------------+--------------------+---------+----------+----------+
 
-SOF 3 - Lossless Sequential
-    Predictive process
-    Source image: 2 to 16 bit samples
-    Sequential
-    Huffman coding: 4 DC tables
-    Decoders shall process scans with 1 to 4 components
-    Interleaved and non-interleaved scans
+JPEG-LS - ISO/IEC 14495-1
+~~~~~~~~~~~~~~~~~~~~~~~~~
 
-    JPEG-LL_frame1 - up to ECS
-    SC_rgb_jpeg_gdcm - up to ECS
++---------------------------------------------+-------------------------------+
+| Transfer Syntax                             | Supported                     |
++------------------------+--------------------+---------+----------+----------+
+| UID                    | Name               | Parsing | Decoding | Encoding |
++========================+====================+=========+==========+==========+
+| 1.2.840.10008.1.2.4.80 | JPEG-LS Lossless   | No      | No       | No       |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.81 | JPEG Lossy         | No      | No       | No       |
++------------------------+--------------------+---------+----------+----------+
+
+JPEG 2000 - ISO/IEC 15444-1 and 15444-2
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
++---------------------------------------------+-------------------------------+
+| Transfer Syntax                             | Supported                     |
++------------------------+--------------------+---------+----------+----------+
+| UID                    | Name               | Parsing | Decoding | Encoding |
++========================+====================+=========+==========+==========+
+| 1.2.840.10008.1.2.4.90 | JPEG 2000          | No      | No       | No       |
+|                        | (Lossless Only)    |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.91 | JPEG 2000 (Lossy   | No      | No       | No       |
+|                        | and Lossless)      |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.92 | JPEG 2000          | No      | No       | No       |
+|                        | Multi-component    |         |          |          |
+|                        | (Lossless Only)    |         |          |          |
++------------------------+--------------------+---------+----------+----------+
+| 1.2.840.10008.1.2.4.93 | JPEG 2000          | No      | No       | No       |
+|                        | Multi-component    |         |          |          |
+|                        | (Lossy and         |         |          |          |
+|                        | Lossless)          |         |          |          |
++------------------------+--------------------+---------+----------+----------+
