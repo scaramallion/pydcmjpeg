@@ -20,9 +20,16 @@ class JPEGBase(object):
 
 class JPEGLS(object):
     """A representation of an ISO/IEC 14495-1 JPEG-LS file."""
-    raise NotImplementedError('JPEG-LS is not supported')
+    def __init__(self):
+        raise NotImplementedError('JPEG-LS is not supported')
 
 
 class JPEG2000(object):
     """A representation of an ISO/IEC 15444-1 JPEG 2000 file."""
-    raise NotImplementedError('JPEG 2000 is not supported')
+    def __init__(self):
+        raise NotImplementedError('JPEG 2000 is not supported')
+
+
+def get_jpeg(fp, info):
+    """Return a class representing the JPEG file."""
+    pass
