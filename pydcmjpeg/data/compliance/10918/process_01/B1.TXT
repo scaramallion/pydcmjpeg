@@ -1,11 +1,11 @@
 Parser output for ' testb1.jpg', May 8, 1994, WBP and JLM (IBM)
 0      SOI (ffd8)
-2      COM (fffe) Lc=281 'Compressed test data stream B1 for ITU-T Rec.
-         T.83 º ISO/IEC 10918-2:1994 (JPEG). Abbreviated format for tabl
+2      COM (fffe) Lc=281 'Compressed test data stream B1 for ITU-T Rec. 
+         T.83 | ISO/IEC 10918-2:1994 (JPEG). Abbreviated format for tabl
          e-specification data. Validated Nov. 1993 by Birger Niss (AutoG
          raph International, Denmark) and Chris Hepburn (Microstar Softw
          are Ltd., Canada). Comment revised May 1994.'
-285    DQT (ffdb) Lq=262 NOTE: DCT frame should follow
+285    DQT (ffdb) Lq=262
 Qtable 0,  Precision = 1 byte.
               8    6    5    8   12   20   26   30
               6    6    7   10   13   29   30   28
@@ -42,7 +42,7 @@ Qtable 3,  Precision = 1 byte.
              26   27   29   32   35   40   48   58
              26   27   29   34   38   46   56   69
              27   29   35   38   46   56   69   83
-549    DHT (ffc4) Lq=418 NOTE: Huffman coding should follow
+549    DHT (ffc4) Lq=418
 Lossless/DC Huffman table 0
 :(  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16   code lengths       )
    00 01 05 01 01 01 01 01 01 00 00 00 00 00 00 00 :(values/length (hex))
@@ -116,4 +116,3 @@ AC Huffman table 1
    f4 f5 f6 f7 f8 f9 fa                            :(hex values, L=16)
 969    EOI (ffd9)
 5 markers found in 971 bytes of compressed data
-
