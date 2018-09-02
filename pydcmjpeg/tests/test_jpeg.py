@@ -117,3 +117,18 @@ class TestJPEG(object):
         assert ['SOF0@395'] == jpg.get_keys('SOF')
         assert len(jpg.get_keys('SOS')) == 255
         assert [] == jpg.get_keys('XXX')
+
+
+class TestJPEGDecode(object):
+    """Tests for JPEG.decode()."""
+    def setup(self):
+        """Setup the test datasets."""
+        self.p1a = REFERENCE_DATA['p1'][0][0]
+        self.p1d = REFERENCE_DATA['p1'][4][0]
+
+    def test_decode_process1(self):
+        """Decode a process 1 JPG."""
+        jpg = jpgread(self.p1d)
+        arr = jpg.to_array
+        #assert (8, 16, 3) == arr.shape
+        #assert 'uint8' == arr.dtype

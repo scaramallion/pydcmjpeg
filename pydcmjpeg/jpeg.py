@@ -1,5 +1,6 @@
 
 from pydcmjpeg.config import JPEG_10918
+from pydcmjpeg.decoders import decode_baseline
 
 
 class JPEG(object):
@@ -7,11 +8,14 @@ class JPEG(object):
 
     **Non-hierarchical**
 
-    1: Baseline DCT - SOF0
+    **DCT-based sequential**
+    1: Baseline DCT
     2: Extended sequential DCT, Huffman, 8-bit
     3: Extended sequential DCT, arithmetic, 8-bit
     4: Extended sequential DCT, Huffman, 12-bit
     5: Extended sequential DCT, arithmetic, 12-bit
+
+    **DCT-based progressive**
     6: Spectral selection, Huffman, 8-bit
     7: Spectral selection, arithmetic, 8-bit
     8: Spectral selection, Huffman, 12-bit
@@ -20,15 +24,20 @@ class JPEG(object):
     11: Full progression, arithmetic, 8-bit
     12: Full progression, Huffman, 12-bit
     13: Full progression, arithmetic, 12-bit
+
+    **Lossless**
     14: Lossless, Huffman, 2 to 16-bit
     15: Lossless, arithmetic, 2 to 16-bit
 
     **Hierarchical**
 
+    **DCT-based sequential**
     16: Extended sequential DCT, Huffman, 8-bit
     17: Extended sequential DCT, arithmetic, 8-bit
     18: Extended sequential DCT, Huffman, 12-bit
     19: Extended sequential DCT, arithmetic, 12-bit
+
+    **DCT-based progressive**
     20: Spectral selection, Huffman, 8-bit
     21: Spectral selection, arithmetic, 8-bit
     22: Spectral selection, Huffman, 12-bit
@@ -37,6 +46,8 @@ class JPEG(object):
     25: Full progression, arithmetic, 8-bit
     26: Full progression, Huffman, 12-bit
     27: Full progression, arithmetic, 12-bit
+
+    **Lossless**
     28: Lossless, Huffman, 2 to 16-bit
     29: Lossless, arithmetic, 2 to 16-bit
 
@@ -70,11 +81,39 @@ class JPEG(object):
             "marker was found"
         )
 
-    def decode(self):
-        raise NotImplementedError
+    def _decode(self):
+        """Decode the JPEG image data in place.
 
-    def from_array(self, arr):
-        raise NotImplementedError
+        Raises
+        ------
+        NotImplementedError
+            If the JPEG image data is of a type for which decoding is not
+            supported.
+        """
+        if not self.is_decodable:
+            raise NotImplementedError(
+                "Unable to decode the JPEG image data as it's of a type "
+                "for which decoding is not supported"
+            )
+
+        if self.is_process1:
+            decoder = decode_baseline
+        #elif self.is_process2:
+        #    decoder = decode_extended_8
+        #elif self.is_process4:
+        #    decoder = decode_extended_12
+        #elif self.is_process14:
+        #    decoder = decode_lossless
+        #elif self.is_process14_sv1:
+        #    decoder = decode_lossless
+
+        try:
+            self._array = decoder(self)
+            self._array_id = id(self._array)
+        except Exception as exc:
+            self._array = None
+            self._array_id = None
+            raise exc
 
     def get_keys(self, name):
         """Return a list of keys with marker containing `name`."""
@@ -88,6 +127,14 @@ class JPEG(object):
     def is_baseline(self):
         """Return True if the JPEG is baseline, False otherwise.
 
+        Baseline process
+        * DCT-based process
+        * Each component of the source image has 8-bit samples
+        * Sequential
+        * Huffman coding has up to 2 AC and 2 DC tables
+        * Decoders shall process scans with 1, 2, 3 and 4 components
+        * Interleaved and non-interleaved scans
+
         Non-hierarchical baseline processes are:
             1
         Hierarchical baseline processes are:
@@ -97,11 +144,28 @@ class JPEG(object):
 
     @property
     def is_decodable(self):
+        """Return True if the JPEG image type is decodable, False otherwise.
+
+        The following processes are decodable:
+
+        * Process 1 (Basline DCT)
+        """
+        if self.is_process1:
+            return True
+
         return False
 
     @property
     def is_extended(self):
         """Return True if the JPEG is extended, False otherwise.
+
+        Extended DCT-based processess
+        * DCT-based process
+        * Each component of the source image has 8- or 12-bit samples
+        * Sequential or progressive
+        * Huffman or arithmetic coding with up to 4 AC and 4 DC tables
+        * Decoders shall process scans with 1, 2, 3 and 4 components
+        * Interleaved and non-interleaved scans
 
         Non-hierarchical extended processes are:
             2, 4
@@ -116,7 +180,14 @@ class JPEG(object):
 
     @property
     def is_hierarchical(self):
-        """Return True if the JPEG is hierarchical, False otherwise."""
+        """Return True if the JPEG is hierarchical, False otherwise.
+
+        Hierarchical processess
+        * Multiple frames (non-differential and differential)
+        * Uses extended DCT-based or lossless processes
+        * Decoders shall process scans with 1, 2, 3 and 4 components
+        * Interleaved and non-interleaved scans
+        """
         return 'DHP' in self.markers
 
     @property
@@ -126,6 +197,14 @@ class JPEG(object):
     @property
     def is_lossless(self):
         """Return True if the JPEG is lossless, False otherwise.
+
+        Lossless processess
+        * Predictive process (not DCT-based)
+        * Each component of the source image P-bit samples (2 <= P <= 16)
+        * Sequential
+        * Huffman or arithmetic coding with up to 4 DC tables
+        * Decoders shall process scans with 1, 2, 3 and 4 components
+        * Interleaved and non-interleaved scans
 
         Non-hierarchical lossless processes are:
             14, 15
@@ -290,7 +369,24 @@ class JPEG(object):
 
     @property
     def to_array(self):
-        raise NotImplementedError
+        """Return the JPEG image data as a numpy ndarray.
+
+        Returns
+        -------
+        numpy.ndarray
+            An ndarray containing the image data.
+
+        Raises
+        ------
+        NotImplementedError
+            If the JPEG is of an unsupported type.
+        """
+        if self._array and id(self._array) == self._array_id:
+            return self._array
+
+        self._decode()
+
+        return self._array
 
     @property
     def to_bytes(self):
