@@ -354,12 +354,17 @@ def SOS(fp):
     Ls - Scan header length
     Ns - Number of image components in scan
     Csj - Scan component selector
-    Tdj - DC entropy coding table destination selector
-    Taj - AC entropy coding table destination selector
-    Ss - Start of spectral or predictor selection
-    Se - End of spectral selection
+    Tdj - DC entropy coding table destination selector.
+    Taj - AC entropy coding table destination selector. Set to 0 for lossless.
+    Ss - Start of spectral or predictor selection. Shall be 0 for sequential
+         DCT, for lossless this is the predictor.
+    Se - End of spectral selection. Shall be 63 for sequential DCT. In lossless
+         this has no meaning and shall be set to 0.
     Ah - Successive approximation bit position high
+         In lossless this has no meaning and shall be set to 0.
     Al - Successive approximation bit position low or point transform
+         Shall be set to 0 for sequential DCT. In lossless mode specifies
+         the point transform Pt.
     """
     (length, nr_components) = unpack('>HB', fp.read(3))
 

@@ -24,11 +24,11 @@ Transfer Syntaxes
 | 1.2.840.10008.1.2.4.51 | JPEG Extended      | Yes     | No       | No       |
 |                        | (Process 2 and 4)  |         |          |          |
 +------------------------+--------------------+---------+----------+----------+
-| 1.2.840.10008.1.2.4.57 | JPEG Lossless,     | No      | No       | No       |
+| 1.2.840.10008.1.2.4.57 | JPEG Lossless,     | Yes     | No       | No       |
 |                        | Non-hierarchical   |         |          |          |
 |                        | (Process 14)       |         |          |          |
 +------------------------+--------------------+---------+----------+----------+
-| 1.2.840.10008.1.2.4.70 | JPEG Lossless,     | No      | No       | No       |
+| 1.2.840.10008.1.2.4.70 | JPEG Lossless,     | Yes     | No       | No       |
 |                        | Non-hierarchical,  |         |          |          |
 |                        | First-order        |         |          |          |
 |                        | Prediction         |         |          |          |

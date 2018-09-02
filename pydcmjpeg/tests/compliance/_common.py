@@ -5,6 +5,7 @@ import numpy as np
 from pydcmjpeg.config import ZIGZAG
 
 WRITE_SOS_DATA = False
+WRITE_SOS_TYPE = 'Sequential DCT'
 
 QUANTIZATION_A = np.asarray(
     [[ 8,  6,  5,  8, 12, 20, 26, 30],
@@ -116,6 +117,8 @@ def _write_sof(fp, offset, marker, name, info):
         fp.write('  (baseline seq. DCT)\n')
     elif name == 'SOF1':
         fp.write('  (ext. seq. DCT/Huff.)\n')
+    elif name == 'SOF3':
+        fp.write('  (seq. lossless/Huff)\n')
     else:
         raise NotImplementedError
 
@@ -173,10 +176,15 @@ def _write_sos(fp, offset, marker, name, info):
             .format(csk, td, ta)
         )
 
-    fp.write(
-        '             Ss={} Se={} Ah={} Al={}\n'
-        .format(info['Ss'], info['Se'], info['Ah'], info['Al'])
-    )
+    if WRITE_SOS_TYPE == 'Sequential DCT':
+        fp.write(
+            '             Ss={} Se={} Ah={} Al={}\n'
+            .format(info['Ss'], info['Se'], info['Ah'], info['Al'])
+        )
+    elif WRITE_SOS_TYPE == 'Lossless':
+        fp.write(
+            '             P sel={} Pt={}\n'.format(info['Ss'], info['Al'])
+        )
 
     if not WRITE_SOS_DATA:
         return

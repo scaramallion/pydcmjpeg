@@ -1,7 +1,7 @@
 Parser output for 'testo2.jpg', May 11, 1994, WBP and JLM (IBM)
 0      SOI (ffd8)
-2      COM (fffe) Lc=297 'Compressed test data stream O2 for ITU-T Rec.
-         T.83 º ISO/IEC 10918-2:1994 (JPEG). Lossless Huffman decoding,
+2      COM (fffe) Lc=297 'Compressed test data stream O2 for ITU-T Rec. 
+         T.83 | ISO/IEC 10918-2:1994 (JPEG). Lossless Huffman decoding, 
          16-bit sample precision. One scan per component format. Validat
          ed Nov. 1993 by Hisashi Ibaraki (NTT, Japan) and Fuminobu Ogawa
           (Mitsubishi Electric Corp., Japan). Comment added May 1994.'

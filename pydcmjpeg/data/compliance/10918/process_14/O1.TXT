@@ -1,7 +1,7 @@
 Parser output for 'testo1.jpg', May 11, 1994, WBP and JLM (IBM)
 0      SOI (ffd8)
-2      COM (fffe) Lc=290 'Compressed test data stream O1 for ITU-T Rec.
-         T.83 º ISO/IEC 10918-2:1994 (JPEG). Lossless Huffman decoding,
+2      COM (fffe) Lc=290 'Compressed test data stream O1 for ITU-T Rec. 
+         T.83 | ISO/IEC 10918-2:1994 (JPEG). Lossless Huffman decoding, 
          8-bit sample precision. Interleaved data format. Validated Nov.
           1993 by Hisashi Ibaraki (NTT, Japan) and Fuminobu Ogawa (Mitsu
          bishi Electric Corp., Japan). Comment added May 1994.'
