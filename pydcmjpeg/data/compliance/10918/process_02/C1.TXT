@@ -1,12 +1,12 @@
 Parser output for 'testc1.jpg', May 8, 1994, WBP and JLM (IBM)
 0      SOI (ffd8)
-2      COM (fffe) Lc=310 'Compressed test data stream C1 for ITU-T Rec.
-         T.83 º ISO/IEC 10918-2:1994 (JPEG). Extended sequential Huffman
+2      COM (fffe) Lc=310 'Compressed test data stream C1 for ITU-T Rec. 
+         T.83 | ISO/IEC 10918-2:1994 (JPEG). Extended sequential Huffman
          , 8-bit sample precision. Interleaved data format. Validated No
-         v. 1993 by Chris Hepburn (Microstar Software Ltd., Canada) and
+         v. 1993 by Chris Hepburn (Microstar Software Ltd., Canada) and 
          Birger Niss (AutoGraph International, Denmark). Comment revised
           May 1994.'
-314    DQT (ffdb) Lq=262 NOTE: DCT frame should follow
+314    DQT (ffdb) Lq=262
 Qtable 0,  Precision = 1 byte.
               8    6    5    8   12   20   26   30
               6    6    7   10   13   29   30   28
@@ -169,4 +169,3 @@ AC Huffman table 3
        612 bytes of entropy-coded data
 27771  EOI (ffd9)
 17 markers found in 27773 bytes of compressed data
-

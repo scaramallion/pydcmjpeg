@@ -40,7 +40,6 @@ def APP(fp):
     Lp - Application data segment length
     Ap - Application data
     """
-    # Can have multiple APP markers
     length = unpack('>H', fp.read(2))[0]
 
     info = {
@@ -59,11 +58,7 @@ def COM(fp):
     Cm - Comment bytes.
     """
     length = unpack('>H', fp.read(2))[0]
-    #print('      Lc={}'.format(length))
     comment = unpack('{}s'.format(length - 2), fp.read(length - 2))[0]
-    comment = comment.decode('utf-8')
-    #for line in range(0, len(comment), 75):
-    #    print('     ', comment[line:line + 75])
 
     info = {
         'Lc' : length,
@@ -84,14 +79,14 @@ def DAC(fp):
     """
     length = unpack('>H', fp.read(2))[0]
     _remaining = length - 2
-    #print('  La={}'.format(length))
 
     _tc, _tb, _cs = [], [], []
     while _remaining:
         tc, tb = _split_byte(fp.read(1))
+        _cs.append(unpack('>B', fp.read(1))[0])
+        _remaining -= 2
         _tc.append(tc)
         _tb.append(tb)
-        _cs.append(unpack('>B', fp.read(1))[0])
 
     info = {
         'La' : length,
@@ -117,25 +112,15 @@ def DHT(fp):
     """
     length = unpack('>H', fp.read(2))[0]
     _remaining = length - 2
-    #print('  Lq={}'.format(length))
 
     _tc, _th = [], []
     _li = []
     _vij = []
     while _remaining > 0:
-        # 0, 0 -> DC luminance (Y)
-        # 1, 0 -> AC luminance (Y)
-        # 0, 1 -> DC chrominance (Cb, Cr)
-        # 1, 1 -> DC chrominance (Cb, Cr)
         tc, th = _split_byte(fp.read(1))
         _tc.append(tc)
         _th.append(th)
         _remaining -= 1
-        # up to 32 tables?
-        #if not tc:
-        #    print('Lossless/DC Huffman table {}'.format(th))
-        #else:
-        #    print('AC Huffman table {}'.format(th))
 
         # li (BITS) is the number of codes for each code length, from 1 to 16
         li = unpack('>16B', fp.read(16))
@@ -152,13 +137,6 @@ def DHT(fp):
 
         _li.append(li)
         _vij.append(vij)
-
-        #print('    1  2  3  4  5  6  7  8  9 10 11 12 13 14 15 16')
-        #print('   ' + ' '.join(['{:>02x}'.format(ii) for ii in li]))
-
-        #for ii, values in enumerate(vij):
-        #    if values:
-        #        print('    L={:>2}   '.format(ii + 1) + ' '.join(['{:>02x}'.format(jj) for jj in values]))
 
     info = {
         'Lh' : length,
@@ -200,27 +178,16 @@ def DQT(fp):
     """
     # length is 2 + sum(t=1, N) of (65 + 64 * Pq(t))
     length = unpack('>H', fp.read(2))[0]
-    #print('      Lq={}'.format(length))
     _remaining = length - 2
 
-    # This probably needs fixing
-    tables = {}
     _pq, _tq, _qk = [], [], []
     while _remaining > 0:
         precision, table_id = _split_byte(fp.read(1))
+        _remaining -= 1
         _pq.append(precision)
         _tq.append(table_id)
-        _remaining -= 1
-
-        #_pq = '2' if precision else '1'
-
-        #print(
-        #    'Qtable {1}, '
-        #    'Precision = {0} byte.'.format(_pq, table_id)
-        #)
 
         # If Pq is 0, Qk is 8-bit, if Pq is 1, Qk is 16-bit
-        # PQ shall be 0 for 8-bit precision
         Q_k = []
         for ii in range(64):
             if precision == 0:
@@ -230,17 +197,7 @@ def DQT(fp):
                 Q_k.append(unpack('>H', fp.read(2))[0])
                 _remaining -= 2
 
-        #table_info = {
-        #    'precision' : precision,
-        #    'Q_k' : Q_k
-        #}
-        #tables[table_id] = table_info
-
         _qk.append(Q_k)
-
-        # print 8x8 table
-        #for ii in range(0, 64, 8):
-        #    print('      ', '   '.join(['{:>2}'.format(ii) for ii in Q_k[ii:ii+8]]))
 
     info = {
         'Lq' : length,
@@ -261,7 +218,6 @@ def DRI(fp):
     """
     length = unpack('>H', fp.read(2))[0]
     restart_interval = unpack('>H', fp.read(2))[0]
-    #print('      Lr={} Ri={}'.format(length, restart_interval))
 
     info = {
         'Lr' : length,
@@ -337,11 +293,6 @@ def SOF(fp):
      samples_per_line,
      nr_components) = unpack('>HBHHB', fp.read(8))
 
-    #print(
-    #    '      Lf={} P={} Y={} X={} Nf={}'
-    #    .format(length, precision, nr_lines, samples_per_line, nr_components)
-    #)
-
     component_id = []
     horizontal_sampling_factor = []
     vertical_sampling_factor = []
@@ -354,10 +305,6 @@ def SOF(fp):
         vertical_sampling_factor.append(_vert)
         _tqi = unpack('>B', fp.read(1))[0]
         quantisation_selector.append(_tqi)
-
-        #print(
-        #    '      Ci={:>3} HV={}{} Tqi={}'.format(_ci, _hor, _vert, _tqi)
-        #)
 
     info = {
         'Lf' : length,
@@ -414,31 +361,18 @@ def SOS(fp):
     Ah - Successive approximation bit position high
     Al - Successive approximation bit position low or point transform
     """
-    # Ls - length of the scan header
-    # Ns - number of image components in scan, equal to the number of sets of
-    #   scan component specification parameters Cs_j, Td_j, Ta_j
     (length, nr_components) = unpack('>HB', fp.read(3))
-    #print('      Ls={0} Ns={1}'.format(length, nr_components))
-
-    # If Ns > 1 then interleaved into H_k horizontal data units by V_k vertical
-    #   data units
 
     csj, tdj, taj = [], [], []
     for ii in range(nr_components):
-        # Cs_j - Scan component selector, which of the Nf image components
-        #   specified shall be the jth component in the scan.
         _cs = unpack('>B', fp.read(1))[0]
         csj.append(_cs)
         _td, _ta = _split_byte(fp.read(1))
         tdj.append(_td)
         taj.append(_ta)
 
-        #print('      Csk={0} Td={1} Ta={2}'.format(_cs, _td, _ta))
-
     (ss, se) = unpack('>BB', fp.read(2))
     ah, al = _split_byte(fp.read(1))
-
-    #print('      SS={} Se={} Ah={} Al={}'.format(ss, se, ah, al))
 
     info = {
         'Ls' : length,
@@ -457,7 +391,4 @@ def SOS(fp):
 
 def skip(fp):
     length = unpack('>H', fp.read(2))[0]
-    print('skipping {} bytes ahead'.format(length - 2))
     fp.seek(length - 2, 1)
-
-    pass

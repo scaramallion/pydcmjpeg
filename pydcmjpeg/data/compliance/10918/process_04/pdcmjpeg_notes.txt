@@ -1,0 +1,53 @@
+A1.TXT
+------
+* Removed the \x1a EOF character
+* Changed the COM reference so that the 'º' symbol is replaced with a '|'.
+* Removed the \r characters
+* Changed the EOF offset to match the file (checked with hex editor)
+* Changed the '9 markers found...' line to have the correct length of the file
+* Removed the two spaces are the 'Qtable...' lines
+* Removed ' NOTE: DCT frame should follow' from the DQT line
+
+B1.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Added a single space after the COM 'ITU-T Rec.' line
+* Removed ' NOTE: Huffman coding should follow' from the DHT line
+* Removed ' NOTE: DCT frame should follow' line
+
+B2.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Removed the two spaces are the 'Qtable...' lines
+* Changed offsets after 1176 to match the file (checked with hex editor)
+
+C1.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Added a single space after the COM 'ITU-T Rec.' line
+* Removed ' NOTE: DCT frame should follow' line
+
+C2.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Added a single space after the COM 'ITU-T Rec.' line
+* Removed ' NOTE: DCT frame should follow' line
+
+E1.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Added a single space after the COM 'ITU-T Rec.' line
+* Removed ' NOTE: DCT frame should follow' line
+
+E2.TXT
+------
+* Removed the \x1a EOF character
+* Removed the \r characters
+* Added a single space after the COM 'ITU-T Rec.' line
+* Removed ' NOTE: DCT frame should follow' line
+* Changed '1955   SOS (ffffda) Ls=8 Ns=1' to 1956 (checked with hex editor)

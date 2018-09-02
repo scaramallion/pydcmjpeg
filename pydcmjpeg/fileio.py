@@ -84,37 +84,51 @@ def parse_jpg(fp):
                 info[key] = (_marker, _fill_bytes , handler(fp))
 
             elif name is 'SOS':
-                info[key] = (_marker, _fill_bytes, handler(fp))
+                # SOS's info dict contains an extra 'encoded_data' keys
+                # which use RSTN@offset and ENC@offset
+                info[key] = [_marker, _fill_bytes, handler(fp)]
 
-                # Skip ECS and all the 0xFF00 that may occur
+                sos_info = {}
+                encoded_data = bytearray()
+                _enc_start = fp.tell()
+
                 while True:
+                    _enc_key = _marker_key('ENC', _enc_start)
                     next_byte = fp.read(1)
                     if next_byte != b'\xFF':
+                        encoded_data.extend(next_byte)
                         continue
 
                     next_byte = fp.read(1)
                     if next_byte == b'\x00':
+                        encoded_data.extend(next_byte)
                         continue
+
+                    info[key][2].update({_enc_key : encoded_data})
+                    encoded_data = bytearray()
 
                     # The number of 0xFF bytes before the marker
                     #   i.e. 0xFF 0xFF 0xFF 0xD9 is 2 fill bytes
-                    _fill_bytes = 0
+                    _sos_fill_bytes = 0
                     # While we still have 0xFF bytes
                     while next_byte == b'\xFF':
-                        _fill_bytes += 1
+                        _sos_fill_bytes += 1
                         next_byte = fp.read(1)
-
-                    #if _fill_bytes:
-                    #    print('  {} FIL bytes'.format(_fill_bytes))
 
                     # Check RST_m
                     if next_byte in [b'\xD0', b'\xD1', b'\xD2', b'\xD3',
                                      b'\xD4', b'\xD5', b'\xD6', b'\xD7']:
+                        _sos_marker = unpack('>H', b'\xFF' + next_byte)[0]
+                        _sos_marker, _, _ = MARKERS[_sos_marker]
+                        _sos_key = _marker_key(_sos_marker, fp.tell())
+                        info[key][2].update({_sos_key : None})
+
+                        _enc_start = fp.tell()
                         continue
 
                     # Back up to the start of the 0xFF
                     # Currently position at first byte after marker
-                    fp.seek(-2 - _fill_bytes, 1)
+                    fp.seek(-2 - _sos_fill_bytes, 1)
                     break
 
             elif name is 'EOI':
