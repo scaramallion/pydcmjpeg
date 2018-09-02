@@ -2,6 +2,34 @@
 
 import heapq
 
+# temporary
+def _get_huffman(htable):
+    """
+    {
+        0 : {
+                0 : (bits, huffval),
+                1 : (bits, huffval),
+            },
+        1 : {
+                0 : (bits, huffval),
+                1 : (bits, huffval),
+            },
+    }
+
+    Returns
+    {
+        0 : {
+                0 : heapq,
+                1 : heapq,
+            },
+        1 : {
+                0 : heapq,
+                1 : heapq,
+        }
+    }
+    """
+    return
+
 
 def get_huffman_table(bits, huffval, method='default'):
     """Return the Huffman table for `bits`, `huffval`
@@ -32,7 +60,23 @@ def get_huffman_table(bits, huffval, method='default'):
 
 
 def _get_huffman_heapq(bits, huffval):
-    """Use python's heapq to build a Huffman tree."""
+    """Use python's heapq to build a Huffman tree.
+
+    Parameters
+    ----------
+    bits : list of int
+        The number of Huffman codes for each of the 16 possible lengths allowed
+        by 10918. Corresponds to the Huffman BITS list.
+    huffval : dict of list of int
+        The values associated with each Huffman code length. The keys to the
+        dict are the Huffman codes lengths.
+
+    Returns
+    -------
+    heapq
+        heap([], (binary, length))
+    """
+
     pass
 
 

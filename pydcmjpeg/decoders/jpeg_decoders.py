@@ -1,6 +1,7 @@
 """Decoders for 10918-1 Baseline DCT JPEGs."""
 
 from pydcmjpeg.config import ZIGZAG
+from pydcmjpeg.huffman import _get_huffman
 
 
 # Temporary to aid in debugging
@@ -112,16 +113,17 @@ def decode_baseline(jpg):
             q_tables[table_id] = quantisation_table
 
     # Huffman tables: up to 2 AC and 2 DC
-    #
     h_tables = {
         0 : {},  # DC or lossless
         1 : {}  # AC
     }
     for key in jpg.get_keys('DHT'):
         (marker, fill_bytes, dht) = jpg.info[key]
-        #_debug_dqt(key.split('@')[1], marker, 'DHT', dht)
+        _debug_dht(key.split('@')[1], marker, 'DHT', dht)
         for _id, _type, bits, huffval in zip(dht['Tc'], dht['Th'], dht['Li'], dht['Vij']):
-            h_tables[_type][_id] = {'BITS' : bits, 'HUFFVAL' : huffval}
+            h_tables[_type][_id] = (bits, huffval)
+
+    huff_tables = _get_huffman(h_tables)
 
     sos_keys = jpg.get_keys('SOS')
     if not sos_keys:
@@ -136,6 +138,8 @@ def decode_baseline(jpg):
         # Debugging output
         _debug_sos(key.split('@')[1], marker, 'SOS', scan)
 
+        csk, td, ta = scan['Csk'], scan['Td'], scan['Ta']
+
         # For the encoded data in the scan
         enc_keys = [kk for kk in scan.keys() if 'ENC' in kk]
         enc_keys = sorted(enc_keys, key=lambda x: int(x.split('@')[1]))
@@ -145,3 +149,11 @@ def decode_baseline(jpg):
             print("Decoded encoded data: '{}'".format(enc_key))
             encoded_data = scan[enc_key]
             print(encoded_data)
+            for bb in encoded_data:
+                print('{:>08b}'.format(bb))
+
+            for cs, dc_id, ac_id in zip(csk, td, ta):
+                dc_huff = h_tables[0][dc_id]
+                ac_huff = h_tables[1][ac_id]
+
+                pass

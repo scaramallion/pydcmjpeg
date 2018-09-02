@@ -94,15 +94,28 @@ def parse_jpg(fp):
 
                 while True:
                     _enc_key = _marker_key('ENC', _enc_start)
-                    next_byte = fp.read(1)
-                    if next_byte != b'\xFF':
-                        encoded_data.extend(next_byte)
+                    prev_byte = fp.read(1)
+                    if prev_byte != b'\xFF':
+                        encoded_data.extend(prev_byte)
                         continue
+
+                    # To get here next_byte must be 0xFF
+                    # If the next byte is 0x00 then keep reading
+                    # If the next byte is 0xFF then keep reading until
+                    #   a non-0xFF byte is found
+                    # If the marker is a RST marker then keep reading
+                    # Otherwise rewind to the start of the fill bytes and break
 
                     next_byte = fp.read(1)
                     if next_byte == b'\x00':
-                        encoded_data.extend(next_byte)
+                        # Skip padding bytes
+                        # The previous byte wasn't added so do it now
+                        encoded_data.extend(prev_byte)
+                        #encoded_data.extend(next_byte)
                         continue
+
+                    # To get here next_byte must be non-padding (non 0x00)
+                    #   so we must be at the end of the encoded data
 
                     info[key][2].update({_enc_key : encoded_data})
                     encoded_data = bytearray()
@@ -115,7 +128,7 @@ def parse_jpg(fp):
                         _sos_fill_bytes += 1
                         next_byte = fp.read(1)
 
-                    # Check RST_m
+                    # Check to see if marker is RST_m
                     if next_byte in [b'\xD0', b'\xD1', b'\xD2', b'\xD3',
                                      b'\xD4', b'\xD5', b'\xD6', b'\xD7']:
                         _sos_marker = unpack('>H', b'\xFF' + next_byte)[0]
@@ -126,6 +139,7 @@ def parse_jpg(fp):
                         _enc_start = fp.tell()
                         continue
 
+                    # End of the current scan, rewind and break
                     # Back up to the start of the 0xFF
                     # Currently position at first byte after marker
                     fp.seek(-2 - _sos_fill_bytes, 1)
