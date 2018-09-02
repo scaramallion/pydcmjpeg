@@ -1,8 +1,67 @@
 
 from pydcmjpeg.config import JPEG_10918
 
+
 class JPEG(object):
-    """A representation of an ISO/IEC 10918-1 JPEG file."""
+    """A representation of an ISO/IEC 10918-1 JPEG file.
+
+    Non-hierarhical
+    ---------------
+    If no DHP marker
+
+    Sequential DCT
+    * Baseline -> SOF0
+    * Extended -> SOF1, SOF9
+    Progressive DCT
+    * SOF2, SOF10
+    Lossless
+    * SOF3, SOF11
+
+    Hierarchical
+    ------------
+    If DHP marker
+
+    Sequential DCT
+    * Baseline -> SOF0
+    * Extended -> SOF1, SOF9, SOF5, SOF13
+    Progressive DCT
+    * SOF2, SOF10, SOF6, SOF14
+    Lossless
+    * SOF3, SOF7, SOF15
+
+    # Non-hierarchical
+    # 1: Baseline DCT - SOF0
+    # 2: Extended Sequential DCT, Huffman, 8-bit - SOF1
+    # 3: Extended sequential DCT, arithmetic, 8-bit - SOF9
+    # 4: Extended sequential DCT, Huffman, 12-bit - SOF1
+    # 5: Extended sequential DCT, arithmetic, 12-bit - SOF9
+    # 6: Spectral selection, Huffman, 8-bit - SOF2
+    # 7: Spectral selection, arithmetic, 8-bit - SOF10
+    # 8: Spectral selection, Huffman, 12-bit - SOF2
+    # 9: Spectral seletion, arithmetic, 12-bit - SOF10
+    # 10: Full progression, Huffman, 8-bit - SOF2
+    # 11: Full progression, arithmetic, 8-bit - SOF10
+    # 12: Full progression, Huffman, 12-bit - SOF2
+    # 13: Full progression, arithmetic, 12-bit - SOF10
+    # 14: Lossless, Huffman, 2 to 16-bit - SOF3
+    # 15: Lossless, arithmetic, 2 to 16-bit - SOF11
+    # Hierarchical
+    # 16: Extended sequential DCT, Huffman, 8-bit
+    # 17: Extended sequential DCT, arithmetic, 8-bit
+    # 18: Extended sequential DCT, Huffman, 12-bit - SOF1
+    # 19: Extended sequential DCT, arithmetic, 12-bit - SOF9
+    # 20: Spectral selection, Huffman, 8-bit
+    # 21: Spectral selection, arithmetic, 8-bit
+    # 22: Spectral selection, Huffman, 12-bit
+    # 23: Spectral selection, arithmetic, 12-bit
+    # 24: Full progression, Huffman, 8-bit
+    # 25: Full progression, arithmetic, 8-bit
+    # 26: Full progression, Huffman, 12-bit
+    # 27: Full progression, arithmetic, 12-bit
+    # 28: Lossless, Huffman, 2 to 16-bit - SOF3
+    # 29: Lossless, arithmetic, 2 to 16-bit - SOF11
+
+    """
     def __init__(self, fp, info):
         self._fp = fp
         self.info = info
@@ -10,8 +69,44 @@ class JPEG(object):
         self._array_id = None
 
     @property
+    def _keys(self):
+        """Return a list of the info keys, ordered by offset."""
+        return sorted(self.info.keys(), key=lambda x: int(x.split('@')[1]))
+
+    @property
+    def markers(self):
+        """Return a list of the found JPEG markers, ordered by offset."""
+        return [mm.split('@')[0] for mm in self._keys]
+
+    @property
+    def is_hierarchical(self):
+        """Return True if the JPEG is hierarchical, False otherwise."""
+        return 'DHP' in self.markers
+
+    @property
+    def is_non_hierarchical(self):
+        """Return True if the JPEG is non-hierarchical, False otherwise."""
+        return not self.is_hierarchical
+
+    @property
     def is_baseline(self):
-        raise NotImplementedError
+        """Return True if the JPEG is baseline, False otherwise.
+
+        Non-hierarchical baseline processes are:
+            1
+        Hierarchical baseline processes are:
+            16, 17, 20, 21, 24, 25.
+        """
+        return 'SOF0' in self.markers
+
+    @property
+    def precision(self):
+        """Return the precision of the sample as an int."""
+        marker = [mm for mm in self._keys if 'SOF' in mm]
+        if marker:
+            return int(self.info[marker[0]][2]['P'])
+
+        raise ValueError("No SOFn marker found in the JPEG.")
 
     @property
     def is_sequential(self):
@@ -27,7 +122,18 @@ class JPEG(object):
 
     @property
     def is_extended(self):
-        raise NotImplementedError
+        """Return True if the JPEG is extended, False otherwise.
+
+        Non-hierarchical extended processes are:
+            2, 4
+        Hierarchical extended processes are:
+            16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27
+        """
+        extended_markers = ('SOF1', 'SOF9', 'SOF5', 'SOF13')
+        if [mm for mm in extended_markers if mm in self.markers]:
+            return True
+
+        return False
 
     @property
     def is_progressive(self):
@@ -35,7 +141,18 @@ class JPEG(object):
 
     @property
     def is_lossless(self):
-        raise NotImplementedError
+        """Return True if the JPEG is lossless, False otherwise.
+
+        Non-hierarchical lossless processes are:
+            14, 15
+        Hierarchical lossless processes are:
+            28, 29
+        """
+        lossless_markers = ('SOF3', 'SOF11') #, 'SOF7', 'SOF15')
+        if [mm for mm in lossless_markers if mm in self.markers]:
+            return True
+
+        return False
 
     @property
     def is_parsable(self):
@@ -51,23 +168,94 @@ class JPEG(object):
 
     @property
     def is_process1(self):
-        raise NotImplementedError
+        """Return True if the JPEG is Process 1, False otherwise."""
+        if self.is_non_hierarchical and self.is_baseline:
+            return True
+
+        return False
 
     @property
     def is_process2(self):
-        raise NotImplementedError
+        """Return True if the JPEG is Process 2, False otherwise."""
+        try:
+            precision = self.precision
+        except ValueError:
+            return False
+
+        if self.is_non_hierarchical and self.is_extended and precision == 8:
+            return True
+
+        return False
 
     @property
     def is_process4(self):
-        raise NotImplementedError
+        """Return True if the JPEG is Process 4, False otherwise."""
+        try:
+            precision = self.precision
+        except ValueError:
+            return False
+
+        if self.is_non_hierarchical and self.is_extended and precision == 12:
+            return True
+
+        return False
 
     @property
     def is_process14(self):
-        raise NotImplementedError
+        """Return True if the JPEG is Process 14, False otherwise."""
+        if 'SOF3' not in self.markers:
+            return False
+
+        if self.is_non_hierarchical and self.is_lossless:
+            return True
+
+        raise False
 
     @property
     def is_process14_sv1(self):
-        raise NotImplementedError
+        """Return True if the JPEG is Process 14 SV1, False otherwise.
+
+        Returns
+        -------
+        bool
+            True if JPEG is process 14, first-order prediction, selection
+            value 1, False otherwise.
+        """
+        if 'SOF3' not in self.markers:
+            return False
+
+        if self.is_hierarchical or not self.is_lossless:
+            return False
+
+        if self.prediction_order != 1:
+            return False
+
+        if self.selection_value == 14:
+            return True
+
+        return False
+
+    @property
+    def prediction_order(self):
+        """"""
+        if not self.is_lossless:
+            raise ValueError("Prediction order is only available for lossless JPEG")
+
+        # Get selection value
+        sos_markers = [mm for mm in self._keys if 'SOS' in mm]
+        # Predictor selector: 1 to 7
+        return self.info[sos_markers[0]][2]['Ss']
+
+    @property
+    def selection_value(self):
+        """"""
+        if not self.is_lossless:
+            raise ValueError("Selection value is only available for lossless JPEG")
+
+        # Get selection value
+        sos_markers = [mm for mm in self._keys if 'SOS' in mm]
+        # Predictor selector: 1 to 7
+        return self.info[sos_markers[0]][2]['Al']
 
     @property
     def to_array(self):
@@ -82,6 +270,31 @@ class JPEG(object):
 
     def decode(self):
         raise NotImplementedError
+
+    @property
+    def uid(self):
+        """Return the DICOM UID corresponding to the JPEG.
+
+        Returns
+        -------
+        str
+            The DICOM transfer syntax UID corresponding to the JPEG.
+
+        Raises
+        ------
+        ValueError
+            If the JPEG doesn't correspond to a DICOM transfer syntax.
+        """
+        if self.is_process1:
+            return '1.2.840.10008.1.2.4.50'
+        elif self.is_process2 or self.is_process4:
+            return '1.2.840.10008.1.2.4.51'
+        elif self.is_process14:
+            return '1.2.840.10008.1.2.4.57'
+        elif self.is_process14_sv1:
+            return '1.2.840.10008.1.2.4.70'
+
+        raise ValueError("JPEG doesn't correspond to a DICOM UID")
 
 
 class JPEGBase(object):
