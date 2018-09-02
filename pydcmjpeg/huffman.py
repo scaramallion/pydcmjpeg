@@ -1,33 +1,41 @@
-import queue
+"""Functions for creating Huffman tables."""
+
+import heapq
 
 
-class HuffmanNode(object):
-    def __init__(self, left=None, right=None, root=None):
-        self.left = left
-        self.right = right
-        self.root = root #?
+def get_huffman_table(bits, huffval, method='default'):
+    """Return the Huffman table for `bits`, `huffval`
 
-    def children(self):
-        return (self.left, self.right)
+    Parameters
+    ----------
+    bits : list of int
+        The number of Huffman codes for each of the 16 possible lengths allowed
+        by 10918. Corresponds to the Huffman BITS list.
+    huffval : dict of list of int
+        The values associated with each Huffman code length. The keys to the
+        dict are the Huffman codes lengths.
+
+    Returns
+    -------
+    Uh...?
+
+    References
+    ----------
+    ISO/IEC 10918-1
+    """
+    if method == 'default':
+        return _get_huffman_heapq(bits, huffval)
+    else:
+        raise ValueError(
+            "Unknown method '{}' for building a Huffman table".format(method)
+        )
 
 
-def create_huffman_table(BITS, HUFFVAL):
-    kk, j = 0, 1
+def _get_huffman_heapq(bits, huffval):
+    """Use python's heapq to build a Huffman tree."""
+    pass
 
-    HUFFSIZE = [] * len()
-    for ii in range(16):
-        if j > BITS[ii]:
-            j = 1
-        else:
-            HUFFSIZE[kk] = ii
-            k += 1
-            j += 1
-            continue
 
-    HUFFSIZE[k] = 0
-    lastk = k
-
-    return HUFFSIZE
 
 '''
 Number of codes of a given length, 1 to 16

@@ -5,88 +5,84 @@ from pydcmjpeg.config import JPEG_10918
 class JPEG(object):
     """A representation of an ISO/IEC 10918-1 JPEG file.
 
-    Non-hierarhical
-    ---------------
-    If no DHP marker
+    **Non-hierarchical**
 
-    Sequential DCT
-    * Baseline -> SOF0
-    * Extended -> SOF1, SOF9
-    Progressive DCT
-    * SOF2, SOF10
-    Lossless
-    * SOF3, SOF11
+    1: Baseline DCT - SOF0
+    2: Extended sequential DCT, Huffman, 8-bit
+    3: Extended sequential DCT, arithmetic, 8-bit
+    4: Extended sequential DCT, Huffman, 12-bit
+    5: Extended sequential DCT, arithmetic, 12-bit
+    6: Spectral selection, Huffman, 8-bit
+    7: Spectral selection, arithmetic, 8-bit
+    8: Spectral selection, Huffman, 12-bit
+    9: Spectral seletion, arithmetic, 12-bit
+    10: Full progression, Huffman, 8-bit
+    11: Full progression, arithmetic, 8-bit
+    12: Full progression, Huffman, 12-bit
+    13: Full progression, arithmetic, 12-bit
+    14: Lossless, Huffman, 2 to 16-bit
+    15: Lossless, arithmetic, 2 to 16-bit
 
-    Hierarchical
-    ------------
-    If DHP marker
+    **Hierarchical**
 
-    Sequential DCT
-    * Baseline -> SOF0
-    * Extended -> SOF1, SOF9, SOF5, SOF13
-    Progressive DCT
-    * SOF2, SOF10, SOF6, SOF14
-    Lossless
-    * SOF3, SOF7, SOF15
-
-    # Non-hierarchical
-    # 1: Baseline DCT - SOF0
-    # 2: Extended Sequential DCT, Huffman, 8-bit - SOF1
-    # 3: Extended sequential DCT, arithmetic, 8-bit - SOF9
-    # 4: Extended sequential DCT, Huffman, 12-bit - SOF1
-    # 5: Extended sequential DCT, arithmetic, 12-bit - SOF9
-    # 6: Spectral selection, Huffman, 8-bit - SOF2
-    # 7: Spectral selection, arithmetic, 8-bit - SOF10
-    # 8: Spectral selection, Huffman, 12-bit - SOF2
-    # 9: Spectral seletion, arithmetic, 12-bit - SOF10
-    # 10: Full progression, Huffman, 8-bit - SOF2
-    # 11: Full progression, arithmetic, 8-bit - SOF10
-    # 12: Full progression, Huffman, 12-bit - SOF2
-    # 13: Full progression, arithmetic, 12-bit - SOF10
-    # 14: Lossless, Huffman, 2 to 16-bit - SOF3
-    # 15: Lossless, arithmetic, 2 to 16-bit - SOF11
-    # Hierarchical
-    # 16: Extended sequential DCT, Huffman, 8-bit
-    # 17: Extended sequential DCT, arithmetic, 8-bit
-    # 18: Extended sequential DCT, Huffman, 12-bit - SOF1
-    # 19: Extended sequential DCT, arithmetic, 12-bit - SOF9
-    # 20: Spectral selection, Huffman, 8-bit
-    # 21: Spectral selection, arithmetic, 8-bit
-    # 22: Spectral selection, Huffman, 12-bit
-    # 23: Spectral selection, arithmetic, 12-bit
-    # 24: Full progression, Huffman, 8-bit
-    # 25: Full progression, arithmetic, 8-bit
-    # 26: Full progression, Huffman, 12-bit
-    # 27: Full progression, arithmetic, 12-bit
-    # 28: Lossless, Huffman, 2 to 16-bit - SOF3
-    # 29: Lossless, arithmetic, 2 to 16-bit - SOF11
+    16: Extended sequential DCT, Huffman, 8-bit
+    17: Extended sequential DCT, arithmetic, 8-bit
+    18: Extended sequential DCT, Huffman, 12-bit
+    19: Extended sequential DCT, arithmetic, 12-bit
+    20: Spectral selection, Huffman, 8-bit
+    21: Spectral selection, arithmetic, 8-bit
+    22: Spectral selection, Huffman, 12-bit
+    23: Spectral selection, arithmetic, 12-bit
+    24: Full progression, Huffman, 8-bit
+    25: Full progression, arithmetic, 8-bit
+    26: Full progression, Huffman, 12-bit
+    27: Full progression, arithmetic, 12-bit
+    28: Lossless, Huffman, 2 to 16-bit
+    29: Lossless, arithmetic, 2 to 16-bit
 
     """
     def __init__(self, fp, info):
+        """Initialise a new JPEG.
+
+        Parameters
+        ----------
+        fp : file-like
+            The file-like that contains the JPEG image.
+        info : dict
+            The parsed JPEG image.
+        """
         self._fp = fp
         self.info = info
+
+        # Used to track whether or not we have decoded the JPEG
         self._array = None
         self._array_id = None
 
     @property
-    def _keys(self):
-        """Return a list of the info keys, ordered by offset."""
-        return sorted(self.info.keys(), key=lambda x: int(x.split('@')[1]))
+    def columns(self):
+        """Return the number of columns in the image as an int."""
+        keys = self.get_keys('SOF')
+        if keys:
+            return self.info[keys[0]][2]['X']
+
+        raise ValueError(
+            "Unable to get the number of columns in the image as no SOFn "
+            "marker was found"
+        )
+
+    def decode(self):
+        raise NotImplementedError
+
+    def from_array(self, arr):
+        raise NotImplementedError
+
+    def get_keys(self, name):
+        """Return a list of keys with marker containing `name`."""
+        return [mm for mm in self._keys if name in mm]
 
     @property
-    def markers(self):
-        """Return a list of the found JPEG markers, ordered by offset."""
-        return [mm.split('@')[0] for mm in self._keys]
-
-    @property
-    def is_hierarchical(self):
-        """Return True if the JPEG is hierarchical, False otherwise."""
-        return 'DHP' in self.markers
-
-    @property
-    def is_non_hierarchical(self):
-        """Return True if the JPEG is non-hierarchical, False otherwise."""
-        return not self.is_hierarchical
+    def is_arithmetic(self):
+        raise NotImplementedError
 
     @property
     def is_baseline(self):
@@ -100,25 +96,8 @@ class JPEG(object):
         return 'SOF0' in self.markers
 
     @property
-    def precision(self):
-        """Return the precision of the sample as an int."""
-        marker = [mm for mm in self._keys if 'SOF' in mm]
-        if marker:
-            return int(self.info[marker[0]][2]['P'])
-
-        raise ValueError("No SOFn marker found in the JPEG.")
-
-    @property
-    def is_sequential(self):
-        raise NotImplementedError
-
-    @property
-    def is_huffman(self):
-        raise NotImplementedError
-
-    @property
-    def is_arithmetic(self):
-        raise NotImplementedError
+    def is_decodable(self):
+        return False
 
     @property
     def is_extended(self):
@@ -136,7 +115,12 @@ class JPEG(object):
         return False
 
     @property
-    def is_progressive(self):
+    def is_hierarchical(self):
+        """Return True if the JPEG is hierarchical, False otherwise."""
+        return 'DHP' in self.markers
+
+    @property
+    def is_huffman(self):
         raise NotImplementedError
 
     @property
@@ -155,16 +139,9 @@ class JPEG(object):
         return False
 
     @property
-    def is_parsable(self):
-        raise True
-
-    @property
-    def is_decodable(self):
-        return False
-
-    @property
-    def uid(self):
-        raise NotImplementedError
+    def is_non_hierarchical(self):
+        """Return True if the JPEG is non-hierarchical, False otherwise."""
+        return not self.is_hierarchical
 
     @property
     def is_process1(self):
@@ -227,35 +204,89 @@ class JPEG(object):
         if self.is_hierarchical or not self.is_lossless:
             return False
 
-        if self.prediction_order != 1:
-            return False
-
-        if self.selection_value == 14:
+        if self.selection_value == 1:
             return True
 
         return False
 
     @property
-    def prediction_order(self):
-        """"""
-        if not self.is_lossless:
-            raise ValueError("Prediction order is only available for lossless JPEG")
+    def is_progressive(self):
+        raise NotImplementedError
 
-        # Get selection value
-        sos_markers = [mm for mm in self._keys if 'SOS' in mm]
-        # Predictor selector: 1 to 7
-        return self.info[sos_markers[0]][2]['Ss']
+    @property
+    def is_sequential(self):
+        raise NotImplementedError
+
+    @property
+    def _keys(self):
+        """Return a list of the info keys, ordered by offset."""
+        return sorted(self.info.keys(), key=lambda x: int(x.split('@')[1]))
+
+    @property
+    def markers(self):
+        """Return a list of the found JPEG markers, ordered by offset."""
+        return [mm.split('@')[0] for mm in self._keys]
+
+    @property
+    def precision(self):
+        """Return the precision of the sample as an int."""
+        keys = self.get_keys('SOF')
+        if keys:
+            return self.info[keys[0]][2]['P']
+
+        raise ValueError(
+            "Unable to get the sample precision of the image as no SOFn "
+            "marker was found"
+        )
+
+    @property
+    def rows(self):
+        """Return the number of rows in the image as an int."""
+        keys = self.get_keys('SOF')
+        if keys:
+            return self.info[keys[0]][2]['Y']
+
+        raise ValueError(
+            "Unable to get the number of rows in the image as no SOFn "
+            "marker was found"
+        )
+
+    @property
+    def samples(self):
+        """Return the number of components in the JPEG as an int."""
+        keys = self.get_keys('SOF')
+        if keys:
+            return self.info[keys[0]][2]['Nf']
+
+        raise ValueError(
+            "Unable to get the number of components in the image as no SOFn "
+            "marker was found"
+        )
 
     @property
     def selection_value(self):
-        """"""
-        if not self.is_lossless:
-            raise ValueError("Selection value is only available for lossless JPEG")
+        """Return the JPEG lossless selection value.
 
-        # Get selection value
+        Returns
+        -------
+        int
+            The selection value for the lossless prediction (0-7). 0 shall
+            only be used for differential coding in the hierarchical mode of
+            operation. 1-3 are one-dimensional predictors and 4-7 are two-
+            dimensional predictors.
+
+        Raises
+        ------
+        ValueError
+            If the JPEG is not lossless.
+        """
+        if not self.is_lossless:
+            raise ValueError(
+                "Selection value is only available for lossless JPEG"
+            )
+
         sos_markers = [mm for mm in self._keys if 'SOS' in mm]
-        # Predictor selector: 1 to 7
-        return self.info[sos_markers[0]][2]['Al']
+        return self.info[sos_markers[0]][2]['Ss']
 
     @property
     def to_array(self):
@@ -263,12 +294,6 @@ class JPEG(object):
 
     @property
     def to_bytes(self):
-        raise NotImplementedError
-
-    def from_array(self, arr):
-        raise NotImplementedError
-
-    def decode(self):
         raise NotImplementedError
 
     @property
@@ -289,10 +314,10 @@ class JPEG(object):
             return '1.2.840.10008.1.2.4.50'
         elif self.is_process2 or self.is_process4:
             return '1.2.840.10008.1.2.4.51'
-        elif self.is_process14:
-            return '1.2.840.10008.1.2.4.57'
         elif self.is_process14_sv1:
             return '1.2.840.10008.1.2.4.70'
+        elif self.is_process14:
+            return '1.2.840.10008.1.2.4.57'
 
         raise ValueError("JPEG doesn't correspond to a DICOM UID")
 

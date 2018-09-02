@@ -26,6 +26,12 @@ class TestJPEG(object):
         assert not jpg.is_hierarchical
         assert jpg.uid == '1.2.840.10008.1.2.4.50'
 
+        if data:
+            assert data[0] == jpg.rows
+            assert data[1] == jpg.columns
+            assert data[2] == jpg.samples
+            assert data[3] == jpg.precision
+
     @pytest.mark.parametrize("fpath,data", REFERENCE_DATA['p2'])
     def test_process2(self, fpath, data):
         """Test that the right process type is returned."""
@@ -42,6 +48,12 @@ class TestJPEG(object):
         assert jpg.is_non_hierarchical
         assert not jpg.is_hierarchical
         assert jpg.uid == '1.2.840.10008.1.2.4.51'
+
+        if data:
+            assert data[0] == jpg.rows
+            assert data[1] == jpg.columns
+            assert data[2] == jpg.samples
+            assert data[3] == jpg.precision
 
     @pytest.mark.parametrize("fpath,data", REFERENCE_DATA['p4'])
     def test_process4(self, fpath, data):
@@ -60,10 +72,20 @@ class TestJPEG(object):
         assert not jpg.is_hierarchical
         assert jpg.uid == '1.2.840.10008.1.2.4.51'
 
+        if data:
+            assert data[0] == jpg.rows
+            assert data[1] == jpg.columns
+            assert data[2] == jpg.samples
+            assert data[3] == jpg.precision
+
     @pytest.mark.parametrize("fpath,data", REFERENCE_DATA['p14'])
     def test_process14(self, fpath, data):
         """Test that the right process type is returned."""
-        pass
+        if data:
+            assert data[0] == jpg.rows
+            assert data[1] == jpg.columns
+            assert data[2] == jpg.samples
+            assert data[3] == jpg.precision
 
     @pytest.mark.parametrize("fpath,data", REFERENCE_DATA['p14sv1'])
     def test_process14sv1(self, fpath, data):
@@ -76,14 +98,22 @@ class TestJPEG(object):
         assert jpg.is_process14_sv1
 
         #assert jpg.precision == 12
-        assert jpg.is_extended
+        assert not jpg.is_extended
         assert jpg.is_lossless
         assert jpg.is_non_hierarchical
         assert not jpg.is_hierarchical
         assert jpg.uid == '1.2.840.10008.1.2.4.70'
 
+        if data:
+            assert data[0] == jpg.rows
+            assert data[1] == jpg.columns
+            assert data[2] == jpg.samples
+            assert data[3] == jpg.precision
 
-class TestJPEG_Process1(object):
-    """"""
-    def test_uid(self):
-        pass
+    def test_get_keys(self):
+        """Test JPEG.get_keys."""
+        jpg = jpgread(REFERENCE_DATA['p1'][1][0])
+        assert ['SOI@0'] == jpg.get_keys('SOI')
+        assert ['SOF0@395'] == jpg.get_keys('SOF')
+        assert len(jpg.get_keys('SOS')) == 255
+        assert [] == jpg.get_keys('XXX')
