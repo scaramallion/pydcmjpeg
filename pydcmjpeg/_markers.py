@@ -2,31 +2,31 @@ from pydcmjpeg.readers import *
 
 
 MARKERS = {}
-# The reserved markers
+# JPEG reserved markers
 for _marker in range(0xFF02, 0xFFBF + 1):
     MARKERS[_marker] = ('RES', 'Reserved', None)
 
 MARKERS.update({
     0xFF01 : ('TEM', 'For temporary private use in artithmetic coding', None),  # Standalone
-    0xFF4F : ('SOC', '', None),  # JPEG 2000
-    0xFF51 : ('SIZ', '', None),  # JPEG 2000
-    0xFF52 : ('COD', '', None),  # JPEG 2000
-    0xFF53 : ('COC', '', None),  # JPEG 2000
-    0xFF55 : ('TLM', '', None),  # JPEG 2000
-    0xFF57 : ('PLM', '', None),  # JPEG 2000
-    0xFF58 : ('PLT', '', None),  # JPEG 2000
-    0xFF5C : ('QCD', '', None),  # JPEG 2000
-    0xFF5D : ('QCC', '', None),  # JPEG 2000
-    0xFF5E : ('RGN', '', None),  # JPEG 2000
-    0xFF5F : ('POC', '', None),  # JPEG 2000
-    0xFF60 : ('PPM', '', None),  # JPEG 2000
-    0xFF61 : ('PPT', '', None),  # JPEG 2000
-    0xFF63 : ('CRG', '', None),  # JPEG 2000
-    0xFF64 : ('COM', '', None),  # JPEG 2000
-    0xFF90 : ('SOT', '', None),  # JPEG 2000
-    0xFF91 : ('SOP', '', None),  # JPEG 2000
-    0xFF92 : ('EPH', '', None),  # JPEG 2000
-    0xFF93 : ('SOD', '', None),  # JPEG 2000
+    0xFF4F : ('SOC', 'Start of codestream', None),  # JPEG 2000 *
+    0xFF51 : ('SIZ', 'Image and tile size', SIZ),  # JPEG 2000
+    0xFF52 : ('COD', 'Coding style default', None),  # JPEG 2000
+    0xFF53 : ('COC', 'Coding style component', None),  # JPEG 2000
+    0xFF55 : ('TLM', 'Tile-part lengths', None),  # JPEG 2000
+    0xFF57 : ('PLM', 'Packet length, main header', None),  # JPEG 2000
+    0xFF58 : ('PLT', 'Packet length, tile-part header', None),  # JPEG 2000
+    0xFF5C : ('QCD', 'Quantization default', None),  # JPEG 2000
+    0xFF5D : ('QCC', 'Quantization component', None),  # JPEG 2000
+    0xFF5E : ('RGN', 'Region of interest', None),  # JPEG 2000
+    0xFF5F : ('POC', 'Progression order change', None),  # JPEG 2000
+    0xFF60 : ('PPM', 'Packed packet headers, main header', None),  # JPEG 2000
+    0xFF61 : ('PPT', 'Packed packet headers ,tile-part header', None),  # JPEG 2000
+    0xFF63 : ('CRG', 'Component registration', None),  # JPEG 2000
+    0xFF64 : ('COM', 'Comment', None),  # JPEG 2000
+    0xFF90 : ('SOT', 'Start of tile-part', SOT),  # JPEG 2000 *
+    0xFF91 : ('SOP', 'Start of packet', None),  # JPEG 2000
+    0xFF92 : ('EPH', 'End of packet header', None),  # JPEG 2000
+    0xFF93 : ('SOD', 'Start of data', None),  # JPEG 2000 *
     # Start of frame markers, non-differential, Huffman coding
     0xFFC0 : ('SOF0', 'Baseline DCT', SOF),
     0xFFC1 : ('SOF1', 'Extended sequential DCT', SOF),
@@ -60,7 +60,7 @@ MARKERS.update({
     0xFFD7 : ('RST7', 'Restart with modulo 8, count "7"', None),  # Standalone
     # Other markers
     0xFFD8 : ('SOI', 'Start of image', None),  # Standalone
-    0xFFD9 : ('EOI', 'End of image', None),  # Standalone
+    0xFFD9 : ('EOI', 'End of image', None),  # Standalone, EOC in JPEG2K
     0xFFDA : ('SOS', 'Start of scan', SOS),
     0xFFDB : ('DQT', 'Define quantization', DQT),
     0xFFDC : ('DNL', 'Define number of lines', DNL),
@@ -90,8 +90,8 @@ MARKERS.update({
     0xFFF4 : ('JPG4', 'Reserved for JPEG extensions', None),  # 10918-3
     0xFFF5 : ('JPG5', 'Reserved for JPEG extensions', None),  # 10918-3
     0xFFF6 : ('JPG6', 'Reserved for JPEG extensions', None),  # 10918-3
-    0xFFF7 : ('SOF55', 'Start of frame (JPEG-LS)', None),  # 14495-1
-    0xFFF8 : ('LSE', 'Beginning of preset parameters (JPEG-LS)', None),  # 14495-1
+    0xFFF7 : ('SOF55', 'Start of frame (JPEG-LS)', SOF),  # 14495-1
+    0xFFF8 : ('LSE', 'Beginning of preset parameters (JPEG-LS)', LSE),  # 14495-1
     0xFFF9 : ('JPG9', 'Reserved for JPEG extensions', None),
     0xFFFA : ('JPG10', 'Reserved for JPEG extensions', None),
     0xFFFB : ('JPG11', 'Reserved for JPEG extensions', None),

@@ -1,5 +1,7 @@
 
-from pydcmjpeg.config import JPEG_10918
+from collections import OrderedDict
+
+from pydcmjpeg.config import JPEG_10918, JPEG_14495, JPEG_15444
 from pydcmjpeg.decoders import decode_baseline
 
 
@@ -431,8 +433,9 @@ class JPEGBase(object):
 
 class JPEGLS(object):
     """A representation of an ISO/IEC 14495-1 JPEG-LS file."""
-    def __init__(self):
-        raise NotImplementedError('JPEG-LS is not supported')
+    def __init__(self, fp, info):
+        self._fp = fp
+        self.info = info
 
 
 class JPEG2000(object):
@@ -443,14 +446,40 @@ class JPEG2000(object):
 
 def get_jpeg(fp, info):
     """Return a class representing the JPEG file."""
-    # JPEG 10918 uses the following SOF markers
-    # 0 to 3, 5 to 7, 9 to 11, 13 to 15
     markers = [key.split('@')[0] for key in info]
-    is_10918_jpg = set(JPEG_10918).intersection(markers)
+    is_10918 = set(JPEG_10918).intersection(markers)
+    is_14495 = set(JPEG_14495).intersection(markers)
+    is_15444 = set(JPEG_15444).intersection(markers)
 
-    if is_10918_jpg:
+    if ((is_10918 and is_14495 and is_15444)
+            or (is_10918 and is_14495)
+            or (is_10918 and is_15444)
+            or (is_14495 and is_15444)):
+        raise ValueError(
+            "The JPEG file contains an invalid mix of markers from the "
+            "supported protocols"
+        )
+    elif is_10918:
         return JPEG(fp, info)
+    elif is_14495:
+        return JPEGLS(fp, info)
+    elif is_15444:
+        return JPEG2000(fp, info)
     else:
         raise NotImplementedError(
             "The JPEG file is not supported"
         )
+
+
+class JPEGDict(OrderedDict):
+    def __setitem__(self, key, value):
+        """Set the item using a Marker.
+
+        Parameters
+        ----------
+        key : str
+            The marker's 'name@offset'.
+        value : tuple
+            The contents of the marker.
+        """
+        super(JPEGDict, self).__setitem__(key, value)

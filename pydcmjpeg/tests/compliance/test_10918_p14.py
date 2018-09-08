@@ -122,6 +122,7 @@ class TestJPEGProcess14_Parse(object):
                 "WBP and JLM (IBM)\n"
             )
             # Data
+            print(keys)
             for key in keys:
                 writer = WRITERS[key[:3]]
                 (marker, fill_bytes, data) = info[key]

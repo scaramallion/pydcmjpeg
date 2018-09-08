@@ -25,6 +25,7 @@ ECS
 from struct import unpack
 
 
+
 def _split_byte(bs):
     """Split the 8-bit byte `bs` into two 4-bit integers."""
     mask_msb = 0b11110000
@@ -48,6 +49,11 @@ def APP(fp):
     }
 
     return info
+
+
+def COD(fp):
+    # FIXME
+    pass
 
 
 def COM(fp):
@@ -216,12 +222,9 @@ def DRI(fp):
     Lr - Define restart interval segment length
     Ri - Restart interval (number of MCU in the restart interval)
     """
-    length = unpack('>H', fp.read(2))[0]
-    restart_interval = unpack('>H', fp.read(2))[0]
-
     info = {
-        'Lr' : length,
-        'Ri' : restart_interval
+        'Lr' : unpack('>H', fp.read(2))[0],
+        'Ri' : unpack('>H', fp.read(2))[0]
     }
 
     return info
@@ -236,13 +239,145 @@ def EXP(fp):
     Ev - Expand vertically
     """
     length = unpack('>H', fp.read(2))[0]
-    _eh, _ev = _split_byte(unpack.read('>B', fp.read(1))[0])
+    _eh, _ev = _split_byte(unpack('>B', fp.read(1))[0])
 
     info = {
         'Le' : length,
         'Eh' : _eh,
         'Ev' : _ev
     }
+
+    return info
+
+
+def LSE(fp, jpg_info):
+    """Parse an LSE marker segment (JPEG-LS).
+
+    LSE - JPEG-LS preset parameters marker
+    Ll - Preset parameters length
+    ID - parameter ID, specifies which JPEG-LS preset parameters follow
+        ID: 0x01
+            JPEG-LS preset coding parameters follow
+            MAXVAL - The maximum possible value for any image sample in the
+                     scan
+            T1 - First quantization threshold for the local gradients
+            T2 - Second quantization threshold for the local gradients
+            T3 - Third quantization threshold for the local gradients
+            RESET - Value at which the counters A, B and N are halved
+        ID: 0x02
+            A mapping table specification follows
+            TID - Table ID
+            Wt - Width of table entries in bytes
+            TABLE - Sample mapping table
+        ID: 0x03
+            A mapping table continuation follows
+            TABLE - The continuation of the mapping table
+        ID: 0x04
+            X and Y parameters greater than 16 bits are defined
+            Wxy - number of bytes used to represent Ye and Xe
+            Ye - number of lines in the image
+            Xe - number of columns in the image
+    """
+    length = unpack('>H', fp.read(2))[0]
+    _id = unpack('B', fp.read(1))[0]
+
+
+    info = {
+        'Ll' : length,
+        'ID' : _id,
+    }
+
+    if _id == 1:
+        info['MAXVAL'] = unpack('>H', fp.read(2))[0]
+        info['T1'] = unpack('>H', fp.read(2))[0]
+        info['T2'] = unpack('>H', fp.read(2))[0]
+        info['T3'] = unpack('>H', fp.read(2))[0]
+        info['RESET'] = unpack('>H', fp.read(2))[0]
+    elif _id == 2:
+        info['TID'] = unpack('>H', fp.read(1))[0]
+        info['Wt'] = unpack('>H', fp.read(1))[0]
+        info['TABLE'] = []
+
+        if (5 + info['Wt'] * (info['MAXVAL'] + 1)) < 65535:
+            MAXTAB = info['MAXVAL']
+        else:
+            MAXTAB = abs(65530 / info['Wt']) - 1
+        for ii in range(MAXTAB):
+            info['TABLE'].append(fp.read(info['Wt']))
+    elif _id == 3:
+        # Find most recent LSE entry prior to this one
+        lse_keys = [kk for kk in jpg_info.keys() if kk.split('@')[0] == 'LSE']
+        lse_keys = sorted(lse_keys, key=lambda x: int(x.split('@')[1]))
+        most_recent = lse_keys[-1]
+
+        entries = len(jpg_info[most_recent]['TABLE'])
+
+        if (5 + info['Wt'] * (entries + 1)) < 65536:
+            MAXTABX = entries - 1
+        else:
+            MAXTABX = abs(65530 / info['Wt']) - 1
+
+        info['TID'] = jpg_info[most_recent]['TID']
+        info['Wt'] = jpg_info[most_recent]['TID']
+        info['TABLE'] = []
+        for ii in range(MAXTABX):
+            info['TABLE'].append(fp.read(info['Wt']))
+    elif _id == 4:
+        info['Wxy'] = unpack('>H', fp.read(1))[0]
+        info['Ye'] = fp.read(info['Wxy'])
+        info['Xe'] = fp.read(info['Wxy'])
+        pass
+    else:
+        raise ValueError(
+            'An LSE ID parameter value of {} is not valid'.format(ID)
+        )
+
+    return info
+
+
+def SIZ(fp):
+    """Parse a SIZ marker segment
+
+    SIZ - Image and tile size marker
+    Lsiz - length of the marker segment
+    Rsiz - capabilities a decoder needs
+    Xsiz - width of the reference grid
+    Ysiz - height of the reference grid
+    XOsiz - horizontal offset from the origin of the reference grid
+    YOsiz - vertical offset from the origin of the reference grid
+    XTsiz - Width of one reference tile
+    YTsiz - Height of one reference tile
+    XTOsiz - Horizontal offset from the origin of the reference grid
+    YTOsiz - Vertical offset from the origin of the reference grid
+    Csiz - number of components in the image
+    Ssiz - precision in bits and sign of the ith component samples
+    XRsiz - horizontal separation of a sample of ith component
+    YRsiz - vertical separation of a sample of ith component
+
+    """
+    info = {
+        'Lsiz' : unpack('>H', fp.read(2))[0],
+        'Rsiz' : unpack('>H', fp.read(2))[0],
+        'Xsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'Ysiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'XOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'YOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'XTsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'YTsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'XTOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'YTOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'Csiz' : unpack('>H', fp.read(2))[0],
+    }
+
+    _ssiz, _xrsiz, _yrsiz = [], [], []
+    for ii in range(info['Csiz']):
+        _ssiz.append(unpack('>B', fp.read(1))[0])
+        _xrsiz.append(unpack('>B', fp.read(1))[0])
+        _yrsiz.append(unpack('>B', fp.read(1))[0])
+
+    info['Ssiz'] = _ssiz
+    info['XRsiz'] = _xrsiz
+    info['YRsiz'] = _yrsiz
 
     return info
 
@@ -321,7 +456,7 @@ def SOF(fp):
     return info
 
 
-def SOS(fp):
+def SOS(fp, jpg='JPEG'):
     """Read a SOS 'Start of scan' header.
 
     +-----------+------+----------------------------------------------+
@@ -368,27 +503,64 @@ def SOS(fp):
     """
     (length, nr_components) = unpack('>HB', fp.read(3))
 
-    csj, tdj, taj = [], [], []
+    csj, tdj, taj, tmj = [], [], [], []
     for ii in range(nr_components):
         _cs = unpack('>B', fp.read(1))[0]
         csj.append(_cs)
-        _td, _ta = _split_byte(fp.read(1))
-        tdj.append(_td)
-        taj.append(_ta)
+        if jpg == 'JPEG':
+            _td, _ta = _split_byte(fp.read(1))
+            tdj.append(_td)
+            taj.append(_ta)
+        elif jpg == 'JPEG-LS':
+            tmj.append(unpack('>B', fp.read(1))[0])
+
 
     (ss, se) = unpack('>BB', fp.read(2))
     ah, al = _split_byte(fp.read(1))
 
+    if jpg == 'JPEG':
+        return {
+            'Ls' : length,
+            'Ns' : nr_components,
+            'Csj' : csj,
+            'Tdj' : tdj,
+            'Taj' : taj,
+            'Ss' : ss,
+            'Se' : se,
+            'Ah' : ah,
+            'Al' : al,
+        }
+    elif jpg == 'JPEG-LS':
+        return {
+            'Ls' : length,
+            'Ns' : nr_components,
+            'Csj' : csj,
+            'Tmj' : tmj,  # 0 to 255
+            'NEAR' : ss,  # 0 for lossless, otherwise 1 to min(255, MAXVAL/2)
+            'ILV' : se,  # 0 for single component, 1 for interleaved, 2 for sampled interleaved
+            'Ah' : ah,
+            'Al' : al,
+        }
+
+
+
+def SOT(fp):
+    """Parse an SOT marker segment.
+
+    SOT - Start of tile-part segment
+    Lsot - length of marker segment
+    Isot - tile index
+    Psot - length from the beginning of the first byte of this SOT marker
+           segment of the tile-part to the end of the data of that tile-part.
+    TPsot - Tile part index
+    TNsot - number of tile-parts of a tile in the codestream
+    """
     info = {
-        'Ls' : length,
-        'Ns' : nr_components,
-        'Csj' : csj,
-        'Tdj' : tdj,
-        'Taj' : taj,
-        'Ss' : ss,
-        'Se' : se,
-        'Ah' : ah,
-        'Al' : al,
+        'Lsot' : unpack('>H', fp.read(2))[0],
+        'Isot' : unpack('>H', fp.read(2))[0],
+        'Psot' : unpack('>H', fp.read(4))[0],
+        'TPsot' : unpack('>H', fp.read(1))[0],
+        'TNsot' : unpack('>H', fp.read(1))[0]
     }
 
     return info
