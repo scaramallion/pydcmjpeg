@@ -34,6 +34,14 @@ def _split_byte(bs):
     return (mask_msb & bs[0]) >> 4, mask_lsb & bs[0]
 
 
+def _get_bit(byte, ii):
+    """Return the bit value at index `ii` of `byte`.
+
+    Bit index is 0 = MSB, 7 = LSB
+    """
+    return (byte >> (7 - ii)) & 1
+
+
 def APP(fp):
     """Parse an APP_n maker segment.
 
@@ -51,9 +59,87 @@ def APP(fp):
     return info
 
 
+def COC(fp, csiz):
+    """Parse a COC marker segment."""
+    lcoc = unpack('>H', fp.read(2))[0]
+    print('Csiz', csiz)
+    if csiz < 257:
+        ccoc = unpack('B', fp.read(1))[0]
+    else:
+        ccoc = unpack('>H', fp.read(2))[0]
+    scoc = unpack('B', fp.read(1))[0]
+
+    _decomp_levels = unpack('B', fp.read(1))[0]
+    _block_width = unpack('B', fp.read(1))[0]
+    _block_height = unpack('B', fp.read(1))[0]
+    _block_style = unpack('B', fp.read(1))[0]
+    _transform = unpack('B', fp.read(1))[0]
+
+    _precincts = []
+    has_precincts = _get_bit(scoc, 7)
+    if has_precincts == 1:
+        for ii in range(_decomp_levels + 1):
+            _precincts.append(unpack('B', fp.read(1))[0])
+
+    info = {
+        'Lcoc' : lcoc,
+        'Ccoc' : ccoc,
+        'Scoc' : scoc,
+        'SPcoc' : {
+            'decomp_levels' : _decomp_levels,
+            'block_width' : _block_width,
+            'block_height' : _block_height,
+            'block_style' : _block_style,
+            'transform' : _transform
+        }
+    }
+
+    if has_precincts:
+        info['SPcoc']['precincts'] = _precincts
+
+    return info
+
+
 def COD(fp):
-    # FIXME
-    pass
+    """Parse a COD marker segment."""
+    lcod = unpack('>H', fp.read(2))[0]
+    scod = unpack('B', fp.read(1))[0]
+    sgcod = {
+        'progression_order' : unpack('B', fp.read(1))[0],
+        'nr_layers' : unpack('>H', fp.read(2))[0],
+        'mc_transform' : unpack('B', fp.read(1))[0],
+    }
+
+    # SPcod
+    _decomp_levels = unpack('B', fp.read(1))[0]
+    _block_width = unpack('B', fp.read(1))[0]
+    _block_height = unpack('B', fp.read(1))[0]
+    _block_style = unpack('B', fp.read(1))[0]
+    _transform = unpack('B', fp.read(1))[0]
+
+    _precincts = []
+    has_precincts = _get_bit(scod, 7)
+    if has_precincts == 1:
+        for ii in range(_decomp_levels + 1):
+            _precincts.append(unpack('B', fp.read(1))[0])
+
+    info = {
+        'Lcod' : lcod,
+        'Scod' : scod,
+        'SGcod' : sgcod,
+        'SPcod' : {
+            'decomp_levels' : _decomp_levels,
+            'block_width' : _block_width,
+            'block_height' : _block_height,
+            'block_style' : _block_style,
+            'transform' : _transform
+        }
+    }
+
+    if has_precincts:
+        info['SPcod']['precincts'] = _precincts
+
+    return info
 
 
 def COM(fp):
@@ -69,6 +155,21 @@ def COM(fp):
     info = {
         'Lc' : length,
         'Cm' : comment
+    }
+
+    return info
+
+
+def COM_JP2(fp):
+    """Parse a JP2K COM marker segment"""
+    lcom = unpack('>H', fp.read(2))[0]
+    rcom = unpack('>H', fp.read(2))[0]
+    ccom = unpack('{}s'.format(lcom - 4), fp.read(lcom - 4))[0]
+
+    info = {
+        'Lcom' : lcom,
+        'Rcom' : rcom,
+        'Ccom' : ccom,
     }
 
     return info
@@ -335,6 +436,64 @@ def LSE(fp, jpg_info):
     return info
 
 
+# FIXME
+def QCC(fp, csiz):
+    """Parse a QCC marker segment"""
+    lqcc = unpack('>H', fp.read(2))[0]
+    if csiz < 257:
+        cqcc = unpack('B', fp.read(1))[0]
+    else:
+        cqcc = unpack('>H', fp.read(2))[0]
+
+    sqcc = unpack('B', fp.read(1))[0]
+
+    _spqcc = []
+
+    info = {
+
+    }
+
+    return info
+
+
+def QCD(fp):
+    """Parse a QCD marker segment.
+
+
+    """
+    lqcd = unpack('>H', fp.read(2))[0]
+    sqcd = unpack('B', fp.read(1))[0]
+
+    _spqcd = []
+    _remaining = lqcd - 3
+    bitstring = '{:>08b}'.format(sqcd)
+    while _remaining > 0:
+        if bitstring[3:] == '00000':
+            # xxx0 0000: no quantisation
+            _spqcd.append(unpack('B', fp.read(1))[0])
+            _remaining -= 1
+        elif bitstring[3:] == '00001':
+            # xxx0 0001: scalar derived
+            _spqcd.append(unpack('>H', fp.read(2))[0])
+            _remaining -= 2
+        elif bitstring[3:] == '00010':
+            # xxx0 0010: scalar expounded
+            _spqcd.append(unpack('>H', fp.read(2))[0])
+            _remaining -= 2
+        else:
+            raise NotImplementedError('QCD invalid value')
+
+        #guard_bits = int(bitstring[3:], 2)
+
+    info = {
+        'Lqcd' : lqcd,
+        'Sqcd' : sqcd,
+        'SPqcd' : _spqcd
+    }
+
+    return info
+
+
 def SIZ(fp):
     """Parse a SIZ marker segment
 
@@ -358,26 +517,39 @@ def SIZ(fp):
     info = {
         'Lsiz' : unpack('>H', fp.read(2))[0],
         'Rsiz' : unpack('>H', fp.read(2))[0],
-        'Xsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'Ysiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'XOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'YOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'XTsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'YTsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'XTOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
-        'YTOsiz' : unpack('>H', fp.read(4))[0],  # FIXME
+        'Xsiz' : unpack('>L', fp.read(4))[0],
+        'Ysiz' : unpack('>L', fp.read(4))[0],
+        'XOsiz' : unpack('>L', fp.read(4))[0],
+        'YOsiz' : unpack('>L', fp.read(4))[0],
+        'XTsiz' : unpack('>L', fp.read(4))[0],
+        'YTsiz' : unpack('>L', fp.read(4))[0],
+        'XTOsiz' : unpack('>L', fp.read(4))[0],
+        'YTOsiz' : unpack('>L', fp.read(4))[0],
         'Csiz' : unpack('>H', fp.read(2))[0],
     }
 
     _ssiz, _xrsiz, _yrsiz = [], [], []
     for ii in range(info['Csiz']):
-        _ssiz.append(unpack('>B', fp.read(1))[0])
-        _xrsiz.append(unpack('>B', fp.read(1))[0])
-        _yrsiz.append(unpack('>B', fp.read(1))[0])
+        _ssiz.append(unpack('B', fp.read(1))[0])
+        _xrsiz.append(unpack('B', fp.read(1))[0])
+        _yrsiz.append(unpack('B', fp.read(1))[0])
 
     info['Ssiz'] = _ssiz
     info['XRsiz'] = _xrsiz
     info['YRsiz'] = _yrsiz
+
+    return info
+
+
+def SOD(fp):
+    """Parse an SOD marker segment.
+
+    SOD - Start of data segment 0xFF 0x93
+
+    Last marker in a tile-part header. Bitstream data between a SOD and
+    the next SOT or EOC shall be a multiple of 8 bits.
+    """
+    info = {}
 
     return info
 
@@ -451,6 +623,19 @@ def SOF(fp):
         'Hi' : horizontal_sampling_factor,
         'Vi' : vertical_sampling_factor,
         'Tqi' : quantisation_selector,
+    }
+
+    return info
+
+
+def SOP(fp):
+    """Parse a SOP marker segment"""
+    lsop = unpack('>H', fp.read(2))[0]
+    nsop = unpack('>H', fp.read(2))[0]
+
+    info = {
+        'Lsop' : lsop,
+        'Nsop' : nsop,
     }
 
     return info
@@ -543,7 +728,6 @@ def SOS(fp, jpg='JPEG'):
         }
 
 
-
 def SOT(fp):
     """Parse an SOT marker segment.
 
@@ -558,9 +742,9 @@ def SOT(fp):
     info = {
         'Lsot' : unpack('>H', fp.read(2))[0],
         'Isot' : unpack('>H', fp.read(2))[0],
-        'Psot' : unpack('>H', fp.read(4))[0],
-        'TPsot' : unpack('>H', fp.read(1))[0],
-        'TNsot' : unpack('>H', fp.read(1))[0]
+        'Psot' : unpack('>L', fp.read(4))[0],
+        'TPsot' : unpack('B', fp.read(1))[0],
+        'TNsot' : unpack('B', fp.read(1))[0]
     }
 
     return info

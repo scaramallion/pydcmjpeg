@@ -3,10 +3,10 @@
 JPEG_10918 = (
     'SOF0', 'SOF1', 'SOF2', 'SOF3', 'SOF5',
     'SOF6', 'SOF7', 'SOF9', 'SOF10',
-    'SOF11', 'SOF13', 'SOF14', 'SOF15'
+    'SOF11', 'SOF13', 'SOF14', 'SOF15', 
 )
-JPEG_14495 = ('SOF55', 'LSE')
-JPEG_15444 = ('SOC')
+JPEG_14495 = ('SOF55', 'LSE', )
+JPEG_15444 = ('SOC', )
 
 
 PARSE_SUPPORTED = {

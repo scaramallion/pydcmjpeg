@@ -1,5 +1,6 @@
 """"""
 
+from collections import OrderedDict
 import logging
 import mmap
 from struct import unpack
@@ -63,13 +64,19 @@ def parse_jpg(fp):
 
     fp.seek(-2, 1)
 
-    # Confirm SOI marker
-    if fp.read(2) != b'\xFF\xD8':
-        raise ValueError('SOI marker not found')
+    # Confirm SOI or SOC marker
+    marker = fp.read(2)
+    if marker not in [b'\xFF\xD8', b'\xFF\x4F']:
+        raise ValueError('No SOI or SOC marker found')
 
-    info = {
-        _marker_key('SOI', fp.tell()) : (unpack('>H', b'\xFF\xD8')[0], _fill_bytes, {})
-    }
+    if marker == b'\xFF\xD8':
+        info = OrderedDict()
+        info[_marker_key('SOI', fp.tell())] = (unpack('>H', b'\xFF\xD8')[0], _fill_bytes, {})
+    elif marker == b'\xFF\x4F':
+        info = OrderedDict()
+        info[_marker_key('SOC', fp.tell())] = (unpack('>H', b'\xFF\x4F')[0], _fill_bytes, {})
+
+    START_OFFSET = None
 
     while True:
         _fill_bytes = 0
@@ -88,19 +95,60 @@ def parse_jpg(fp):
 
         _marker = unpack('>H', fp.read(2))[0]
 
+        mm = MARKERS.get(_marker, 'UNKNOWN')[0]
+        print('{}@{} : {}'.format(hex(_marker), fp.tell() - 2, mm))
+
         if _marker in MARKERS:
             name, description, handler = MARKERS[_marker]
             #print(hex(_marker), name, fp.tell() - 2)
             key = _marker_key(name, fp.tell())
-            if name not in ['SOS', 'EOI', 'LSE']:
+            if name not in ['SOS', 'EOI', 'LSE', 'QCC', 'SOD', 'SOT', 'COC']:
                 if handler is None:
                     #length = unpack('>H', fp.read(2))[0] - 2
                     #fp.seek(length, 1)
-                    fp.seek(2, 1)
+                    #fp.seek(2, 1)
+                    info[key] = (_marker, _fill_bytes, {})
                     continue
 
                 info[key] = (_marker, _fill_bytes , handler(fp))
-                #print(info[key])
+                print(key, _marker, info[key])
+
+            elif name is 'SOT':
+                START_OFFSET = fp.tell() - 2
+                print('SOT offset', START_OFFSET)
+                info[key] = (_marker, _fill_bytes, handler(fp))
+                print(key, _marker, info[key])
+            elif name is 'SOD':
+                info[key] = (_marker, _fill_bytes, handler(fp))
+                print(key, _marker, info[key])
+
+                # Tile part length
+                # get last SOT marker
+                sot_keys = [kk for kk in info.keys() if 'SOT' in kk]
+                sot = info[sot_keys[-1]]
+                tile_length = sot[2]['Psot']
+                print(tile_length)
+                if tile_length == 0:
+                    # Tile goes to EOC
+                    pass
+                else:
+                    # tile_length is from first byte of SOT to end of tile-part
+                    fp.seek(START_OFFSET)
+                    fp.seek(START_OFFSET + tile_length)
+                    print(START_OFFSET + tile_length, fp.tell())
+
+            elif name in ['QCC', 'COC']:
+                # JPEG2000
+                csiz = None
+                for kk in info:
+                    if 'SIZ' in kk:
+                        csiz = info[kk][2]['Csiz']
+
+                if not csiz:
+                    raise ValueError('Bad order')
+
+                info[key] = (_marker, _fill_bytes, handler(fp, csiz))
+                print(key, _marker, info[key])
 
             elif name is 'SOS':
                 # SOS's info dict contains an extra 'encoded_data' keys
@@ -111,7 +159,7 @@ def parse_jpg(fp):
                         JPEG_TYPE = 'JPEG-LS'
                         break
                 info[key] = [_marker, _fill_bytes, handler(fp, jpg=JPEG_TYPE)]
-                #print(info[key])
+                print(key, _marker, info[key])
 
                 sos_info = {}
                 encoded_data = bytearray()
@@ -187,11 +235,13 @@ def parse_jpg(fp):
 
             elif name is 'EOI':
                 info[key] = (_marker, _fill_bytes, {})
+                print(key, _marker, info[key])
                 break
 
             elif name is 'LSE':
                 # JPEG-LS
                 info[key] = (_marker, _fill_bytes, handler(fp, info))
+                print(key, _marker, info[key])
 
         else:
             print('Unknown marker {0} at offset {1}'

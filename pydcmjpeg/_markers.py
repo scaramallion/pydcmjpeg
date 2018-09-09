@@ -10,23 +10,23 @@ MARKERS.update({
     0xFF01 : ('TEM', 'For temporary private use in artithmetic coding', None),  # Standalone
     0xFF4F : ('SOC', 'Start of codestream', None),  # JPEG 2000 *
     0xFF51 : ('SIZ', 'Image and tile size', SIZ),  # JPEG 2000
-    0xFF52 : ('COD', 'Coding style default', None),  # JPEG 2000
-    0xFF53 : ('COC', 'Coding style component', None),  # JPEG 2000
+    0xFF52 : ('COD', 'Coding style default', COD),  # JPEG 2000
+    0xFF53 : ('COC', 'Coding style component', COC),  # JPEG 2000
     0xFF55 : ('TLM', 'Tile-part lengths', None),  # JPEG 2000
     0xFF57 : ('PLM', 'Packet length, main header', None),  # JPEG 2000
     0xFF58 : ('PLT', 'Packet length, tile-part header', None),  # JPEG 2000
-    0xFF5C : ('QCD', 'Quantization default', None),  # JPEG 2000
+    0xFF5C : ('QCD', 'Quantization default', QCD),  # JPEG 2000
     0xFF5D : ('QCC', 'Quantization component', None),  # JPEG 2000
     0xFF5E : ('RGN', 'Region of interest', None),  # JPEG 2000
     0xFF5F : ('POC', 'Progression order change', None),  # JPEG 2000
     0xFF60 : ('PPM', 'Packed packet headers, main header', None),  # JPEG 2000
     0xFF61 : ('PPT', 'Packed packet headers ,tile-part header', None),  # JPEG 2000
     0xFF63 : ('CRG', 'Component registration', None),  # JPEG 2000
-    0xFF64 : ('COM', 'Comment', None),  # JPEG 2000
+    0xFF64 : ('COM', 'Comment', COM_JP2),  # JPEG 2000
     0xFF90 : ('SOT', 'Start of tile-part', SOT),  # JPEG 2000 *
-    0xFF91 : ('SOP', 'Start of packet', None),  # JPEG 2000
+    0xFF91 : ('SOP', 'Start of packet', SOP),  # JPEG 2000
     0xFF92 : ('EPH', 'End of packet header', None),  # JPEG 2000
-    0xFF93 : ('SOD', 'Start of data', None),  # JPEG 2000 *
+    0xFF93 : ('SOD', 'Start of data', SOD),  # JPEG 2000 *
     # Start of frame markers, non-differential, Huffman coding
     0xFFC0 : ('SOF0', 'Baseline DCT', SOF),
     0xFFC1 : ('SOF1', 'Extended sequential DCT', SOF),

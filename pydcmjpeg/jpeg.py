@@ -440,8 +440,9 @@ class JPEGLS(object):
 
 class JPEG2000(object):
     """A representation of an ISO/IEC 15444-1 JPEG 2000 file."""
-    def __init__(self):
-        raise NotImplementedError('JPEG 2000 is not supported')
+    def __init__(self, fp, info):
+        self._fp = fp
+        self.info = info
 
 
 def get_jpeg(fp, info):

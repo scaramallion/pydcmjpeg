@@ -3,6 +3,8 @@
 import numpy as np
 
 from pydcmjpeg.config import ZIGZAG
+from pydcmjpeg.utils import get_bit
+
 
 WRITE_SOS_DATA = False
 WRITE_SOS_TYPE = 'Sequential DCT'
@@ -211,6 +213,319 @@ def _write_eoi(fp, offset, marker, name, info):
         .format(offset, name, marker)
     )
 
+def _write_soc(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+    fp.write('\n')
+
+def _write_siz(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+    fp.write('\n')
+
+    fp.write('  {:<31}: JPEG2000 profile {}\n'.format('Required Capabilities', info['Rsiz'] - 1))
+    fp.write('  {:<31}: {}x{}\n'.format('Reference Grid Size', info['Xsiz'], info['Ysiz']))
+    fp.write('  {:<31}: {}x{}\n'.format('Image Offset', info['XOsiz'], info['YOsiz']))
+    fp.write('  {:<31}: {}x{}\n'.format('Reference Tile Size', info['XTsiz'], info['YTsiz']))
+    fp.write('  {:<31}: {}x{}\n'.format('Reference Tile Offset', info['XTOsiz'], info['YTOsiz']))
+    fp.write('  {:<31}: {}\n'.format('Components', info['Csiz']))
+    for ii in range(info['Csiz']):
+        ssiz = info['Ssiz'][ii]
+        if ssiz & (1 << 7):
+            # Signed
+            is_signed = 'yes'
+            bit_depth = (ssiz & b'\x7f'[0]) + 1
+        else:
+            # Unsigned
+            is_signed = 'no'
+            bit_depth = ssiz + 1
+
+        sep = '{}x{}'.format(info['XRsiz'][ii], info['YRsiz'][ii])
+
+        depth_str = 'Component #{} Depth'.format(ii)
+        signed_str = 'Component #{} Signed'.format(ii)
+        sep_str = 'Component #{} Sample Separation'.format(ii)
+        fp.write('  {:<31}: {}\n'.format(depth_str, bit_depth))
+        fp.write('  {:<31}: {}\n'.format(signed_str, is_signed))
+        fp.write('  {:<31}: {}\n'.format(sep_str, sep))
+
+    fp.write('\n')
+
+def _write_qcd(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+    fp.write('\n')
+
+    # Sqcd xxx0 0000 is not quant
+    # 000x xxxx to 111 x xxxx is nr guard bits
+    sqcd = info['Sqcd']
+    split_3 = (sqcd & 224) >> 5
+    split_5 = (sqcd & 31)
+    if split_5 == 0:
+        qcd_str = 'none'
+    elif split_5 == 1:
+        qcd_str = 'scalar derived'
+    elif split_5 == 2:
+        qcd_str = 'scalar expounded'
+
+    fp.write('  {:<18}: {}\n'.format('Quantization Type', qcd_str))
+    fp.write('  {:<18}: {}\n'.format('Guard Bits', split_3))
+
+    if split_5 == 0:
+        for ii, value in enumerate(info['SPqcd']):
+            value = (value & 248) >> 3
+            fp.write('  {:<18}: {}\n'.format('Exponent #{}'.format(ii), value))
+    else:
+        mantissa = (value & 4097)
+        exponent = (value & 63488) >> 11
+        fp.write('  {:<18}: {}\n'.format('Mantissa #{}'.format(ii), mantissa))
+        fp.write('  {:<18}: {}\n'.format('Exponent #{}'.format(ii), exponent))
+
+    fp.write('\n')
+
+def _write_cod(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+    scod = info['Scod']
+    sgcod = info['SGcod']
+    spcod = info['SPcod']
+
+    default_precincts = 'yes'
+    if get_bit(scod, 7):
+        default_precincts = 'no'
+
+    sop_markers = 'no'
+    if get_bit(scod, 6):
+        sop_markers = 'yes'
+
+    eph_markers = 'no'
+    if get_bit(scod, 5):
+        eph_markers = 'yes'
+
+    prog_order = {
+        0 : 'layer-resolution level-component-position',
+        1 : 'resolution level-layer-component-position',
+        2 : 'resolution level-position-component-layer',
+        3 : 'position-component-resolution level-layer',
+        4 : 'component-position-resolution level-layer',
+    }
+
+    mc_transform = 'none'
+    if sgcod['mc_transform'] == 1:
+        mc_transform = 'Component transformation'
+
+    selective_arith = 'no'
+    block_style = spcod['block_style']
+    if get_bit(block_style, 7):
+        selective_arith = 'yes'
+
+    context_reset = 'no'
+    if get_bit(block_style, 6):
+        context_reset = 'yes'
+
+    termination = 'no'
+    if get_bit(block_style, 5):
+        termination = 'yes'
+
+    vertically = 'no'
+    if get_bit(block_style, 4):
+        vertically = 'yes'
+
+    predictable = 'no'
+    if get_bit(block_style, 3):
+        predictable = 'yes'
+
+    segmentation = 'no'
+    if get_bit(block_style, 2):
+        segmentation = 'yes'
+
+    wavelet = '9-7 irreversible'
+    if spcod['transform']:
+        wavelet = '5-3 reversible'
+
+    fp.write('  {:<35}: {}\n'.format('Default Precincts of 2^15x2^15', default_precincts))
+    fp.write('  {:<35}: {}\n'.format('SOP Marker Segments', sop_markers))
+    fp.write('  {:<35}: {}\n'.format('EPH Marker Segments', eph_markers))
+
+    # FIXME
+    fp.write('  {:<35}: {:08}\n'.format('All Flags', scod))
+
+    fp.write('  {:<35}: {}\n'.format('Progression Order', prog_order[sgcod['progression_order']]))
+    fp.write('  {:<35}: {}\n'.format('Layers', sgcod['nr_layers']))
+    fp.write('  {:<35}: {}\n'.format('Multiple Component Transformation', mc_transform))
+    fp.write('  {:<35}: {}\n'.format('Decomposition Levels', spcod['decomp_levels']))
+
+    width = spcod['block_width']
+    width = 2**((width & 0b00001111) + 2)
+    height = spcod['block_height']
+    height = 2**((height & 0b00001111) + 2)
+
+    fp.write('  {:<35}: {}x{}\n'.format('Code-block size', width, height))
+    fp.write('  {:<35}: {}\n'.format('Selective Arithmetic Coding Bypass', selective_arith))
+    fp.write('  {:<35}: {}\n'.format('Reset Context Probabilities', context_reset))
+    fp.write('  {:<35}: {}\n'.format('Termination on Each Coding Pass', termination))
+    fp.write('  {:<35}: {}\n'.format('Vertically Causal Context', vertically))
+    fp.write('  {:<35}: {}\n'.format('Predictable Termination', predictable))
+    fp.write('  {:<35}: {}\n'.format('Segmentation Symbols', segmentation))
+    fp.write('  {:<35}: {}\n'.format('Wavelet Transformation', wavelet))
+
+    fp.write('\n')
+
+def _write_sot(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+    fp.write('\n')
+
+    fp.write('  {:<12}: {}\n'.format('Tile', info['Isot']))
+    fp.write('  {:<12}: {}\n'.format('Length', info['Psot']))
+    fp.write('  {:<12}: {}\n'.format('Index', info['TPsot']))
+    fp.write('  {:<12}: {}\n'.format('Tile-Parts:', info['TNsot']))
+
+    fp.write('\n')
+
+def _write_sod(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+    #fp.write('Data : {} bytes\n'.format('FIXME'))
+
+    #fp.write('\n')
+
+def _write_eoc(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<7}{1:<4}({2})\n"
+        .format(offset, name, marker)
+    )
+
+    fp.write('\n')
+
+def _write_coc(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+    ccoc = info['Ccoc']
+
+    fp.write('  {:<35}: {}\n'.format('Component', ccoc))
+
+    scoc = info['Scoc']
+
+    has_precincts = get_bit(scoc, 7)
+    precincts = 'default'
+    if has_precincts:
+        raise NotImplementedError
+
+    fp.write('  {:<35}: {}\n'.format('Precincts', precincts))
+
+    spcoc = info['SPcoc']
+
+    selective_arith = 'no'
+    block_style = spcoc['block_style']
+    if get_bit(block_style, 7):
+        selective_arith = 'yes'
+
+    context_reset = 'no'
+    if get_bit(block_style, 6):
+        context_reset = 'yes'
+
+    termination = 'no'
+    if get_bit(block_style, 5):
+        termination = 'yes'
+
+    vertically = 'no'
+    if get_bit(block_style, 4):
+        vertically = 'yes'
+
+    predictable = 'no'
+    if get_bit(block_style, 3):
+        predictable = 'yes'
+
+    segmentation = 'no'
+    if get_bit(block_style, 2):
+        segmentation = 'yes'
+
+    wavelet = '9-7 irreversible'
+    if spcoc['transform']:
+        wavelet = '5-3 reversible'
+
+    fp.write('  {:<35}: {}\n'.format('Decomposition Levels', spcoc['decomp_levels']))
+
+    width = spcoc['block_width']
+    width = 2**((width & 0b00001111) + 2)
+    height = spcoc['block_height']
+    height = 2**((height & 0b00001111) + 2)
+
+    fp.write('  {:<35}: {}x{}\n'.format('Code-block size', width, height))
+    fp.write('  {:<35}: {}\n'.format('Selective Arithmetic Coding Bypass', selective_arith))
+    fp.write('  {:<35}: {}\n'.format('Reset Context Probabilities', context_reset))
+    fp.write('  {:<35}: {}\n'.format('Termination on Each Coding Pass', termination))
+    fp.write('  {:<35}: {}\n'.format('Vertically Causal Context', vertically))
+    fp.write('  {:<35}: {}\n'.format('Predictable Termination', predictable))
+    fp.write('  {:<35}: {}\n'.format('Segmentation Symbols', segmentation))
+    fp.write('  {:<35}: {}\n'.format('Wavelet Transformation', wavelet))
+
+    fp.write('\n')
+
+def _write_com_jp2(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+    if info['Rcom'] == 0:
+        registration = 'binary'
+    elif info['Rcom'] == 1:
+        registration = 'ISO-8859-15'
+
+    fp.write('  {:<13}: {}\n'.format('Registration', registration))
+    fp.write('  {:<13}: {}\n'.format('Comment', info['Ccom'].decode('iso8859-15')))
+
+    fp.write('\n')
+
+def _write_res(fp, offset, marker, name, description, info):
+    name = '0x30'
+    description = 'unknown segment-less'
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+def _write_sop(fp, offset, marker, name, description, info):
+    fp.write(
+        "{0:<8}: New marker: {1} ({2})\n"
+        .format(offset, name, description)
+    )
+
+    fp.write('\n')
+
+    fp.write('  Sequence : {}\n'.format(info['Nsop']))
+
+    fp.write('\n')
+
 
 WRITERS = {
     'SOI' : _write_soi,
@@ -222,4 +537,15 @@ WRITERS = {
     'APP' : _write_app,
     'SOS' : _write_sos,
     'EOI' : _write_eoi,
+    'EOC' : _write_eoc,
+    'SIZ' : _write_siz,
+    'SOC' : _write_soc,
+    'QCD' : _write_qcd,
+    'COD' : _write_cod,
+    'SOT' : _write_sot,
+    'SOD' : _write_sod,
+    'COC' : _write_coc,
+    'COM_JP2' : _write_com_jp2,
+    'RES' : _write_res,
+    'SOP' : _write_sop,
 }
